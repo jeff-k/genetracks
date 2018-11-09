@@ -12,4 +12,5 @@ setuptools.setup(
     url="https://github.com/jeff-k/genetracks",
     packages=setuptools.find_packages(),
         #classifiers = [],
+    install_requires=['drawSvg',],
 )

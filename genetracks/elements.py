@@ -1,28 +1,40 @@
-import xml.etree.ElementTree as ET
+import drawSvg as draw
 
 class Figure:
-    def __init__(self, items=[]):
-        self.items = items
+    def __init__(self, tracks=[]):
+        self.tracks = tracks
+        right = 0
+        left = 1000
+
+        for track in self.tracks:
+            (a, b) = track.interval
+            left = min(a, left)
+            right = max(b, right)
+
+        self.height = len(tracks) * 20
+        self.width = right
+
 
     def to_svg(self, g):
         pass
 
-    def show(self):
-        svg = ET.Element('svg', xmlns="http://www.w3.org/2000/svg",
-                version="1.1")
-        g = ET.SubElement(svg,"g",style="fill-opacity:1.0; stroke:black;")
-        for item in self.items:
-            item.to_svg(g)
-        return ET.tostring(svg)
+    def add_track(self, track):
+        self.tracks.append(track)
 
-class Box(Figure):
-    def __init__(self):
-        self.polys = [
-            [(0, 500), (10, 510), (0, 10), (500, 510)],]
+    def show(self):
+        d = draw.Drawing(self.width, self.height, origin='center')
+
+        for i, track in enumerate(self.tracks):
+            d.append(draw.Rectangle(i * 10,
+                (i * 10) + 10,
+                track.width,
+                10))
+        return d
 
 class Track(Figure):
-    def __init__(self, label=None, style='clothesline'):
-        pass
+    def __init__(self, a, b, label=None, style='clothesline'):
+        self.interval = (a, b)
+        self.width = b - a
 
 class Label(Figure):
     def __init__(self, text, style=None):
