@@ -1,4 +1,4 @@
 # genetracks
 Generate track diagrams for genomic alignments
 
-![Plasmid diagram](plasmid.png)
+![Plasmid diagram](examples/plasmid.png)
