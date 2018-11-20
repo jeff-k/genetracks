@@ -7,10 +7,13 @@ class Figure:
     """
     figure class
     """
-    def __init__(self, tracks=[], height=100, size=500):
+    def __init__(self, tracks=[], height=50, width=700, size=1000):
+        self.padding = 10
         self.tracks = tracks
         self.height = height
         self.size = size
+        self.track_height = 10
+        self.width = width # horizontal scaling
 
     def to_svg(self, g):
         pass
@@ -18,18 +21,19 @@ class Figure:
     def add_track(self, track):
         self.tracks.append(track)
 
-    def draw(self, i, j, alignments=[], h=10):
+    def draw(self, i, j, alignments=[]):
         top = self.height
-        d = draw.Drawing(max(i.b, j.b) + 5, top, origin=(0, 0))
+        d = draw.Drawing(self.size, top, origin=(0, 0))
+        h = self.track_height
 
-        for e in i.draw(0, 0, h=h):
-            d.append(e)
-        for e in j.draw(0, top - h, h=h):
-            d.append(e)
+        
+        d.append(i.draw(h=h, w=self.width))
+            
+        d.append(j.draw(h=h, w=self.width))
 
-        for aln in alignments:
-            for e in aln.draw(h=h):
-                d.append(e)
+###        for aln in alignments:
+  #          for e in aln.draw(h=h, w=self.width):
+  #              d.append(e)
 
         d.setRenderSize(self.size)
         return d
@@ -56,27 +60,31 @@ class Track:
     def add_tick(self, tick):
         self.ticks.append(tick)
 
-    def draw(self, x, y, h=10):
-        self.x = x
-        self.y = y
-        d = []
-        d.append(draw.Rectangle(x + self.a, y, x + (self.b - self.a), y + h,
-                                fill=self.color))
+    def draw(self, h=10, w=700):
+        #r = (self.b + x) / w
+        #self.x = x
+        #self.y = y
+
+        d = draw.Group()
+        d.append(draw.Rectangle(self.a, 0, self.b - self.a, h, fill=self.color,
+            stroke=self.color))
+
         for tick in self.ticks:
-            d.append(draw.Lines(x + self.a + tick, y, x + self.a + tick, y + h,
-                                stroke='red'))
+            d.append(draw.Lines(self.a + tick, 0, self.a + tick,  stroke='red'))
+
         if self.label:
-            d.append(draw.Text(self.label, h, x - 20, y))
+            d.append(draw.Text(self.label, h, (self.b + self.a) / 2, h + 2))
 
         if 'f' in self.direction:
-            d.append(draw.Lines(x + self.b, y, x + self.b + 5, y + 5,
-                                x + self.b, y + h, fill=self.color))
+            d.append(draw.Lines(self.b, 0, self.b + 5, h / 2, self.b, h,
+                fill=self.color, stroke=self.color))
         if 'r' in self.direction:
-            d.append(draw.Lines(x + self.a, y, (x + self.a) - 5, y + 5,
-                                x + self.a, y + h, fill=self.color))
+            d.append(draw.Lines(self.a, 0, self.a - 5, h / 2, self.a, h,
+                fill=self.color, stroke=self.color))
 
         for a, b, color in self.regions:
-            d.append(draw.Rectangle(x + a, y, x + (b - a), y + h, fill=color))
+            d.append(draw.Rectangle(a, 0, b - a, h, fill=color))
+
         return d
 
 
@@ -100,15 +108,15 @@ class Alignment:
 #    def add_alignment(self, a, b):
 #        pass
 
-    def draw(self, h=10):
+    def draw(self, h=10, w=1):
         d = []
         for bottom, top in self.connections:
-            d.append(draw.Lines(bottom, self.t1.y + h,
-                                top, self.t2.y, stroke='black'))
-            d.append(draw.Lines(bottom, self.t1.y,
-                                bottom, self.t1.y + h, stroke='black'))
-            d.append(draw.Lines(top, self.t2.y,
-                                top, self.t2.y + h, stroke='black'))
+            d.append(draw.Lines(w / bottom, self.t1.y + h,
+                                w / top, self.t2.y, stroke='black'))
+            d.append(draw.Lines(w / bottom, self.t1.y,
+                                w / bottom, self.t1.y + h, stroke='black'))
+            d.append(draw.Lines(w / top, self.t2.y,
+                                w / top, self.t2.y + h, stroke='black'))
         return d
 
 
