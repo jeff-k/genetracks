@@ -4,46 +4,38 @@ basic elements of gene track figures
 import drawSvg as draw
 
 class Figure:
+    """Genetracks Figure
     """
-    figure class
-    """
-    def __init__(self, tracks=[], height=50, width=700, size=1000):
+    def __init__(self, tracks=[], height=75, width=700, size=700):
         self.padding = 10
         self.tracks = tracks
         self.height = height
         self.size = size
         self.track_height = 10
         self.width = width # horizontal scaling
+        self.d = draw.Drawing(self.size, self.height, origin=(0, 0))
+        self.tracks = 0
 
     def to_svg(self, g):
         pass
 
     def add_track(self, track):
-        self.tracks.append(track)
+        self.d.append(track.draw(y=-(self.tracks * 30)))
+        self.tracks += 1
 
-    def draw(self, i, j, alignments=[]):
-        top = self.height
-        d = draw.Drawing(self.size, top, origin=(0, 0))
-        h = self.track_height
+    def add_alignment(self, alignment):
+        self.d.append(alignment.draw(h=10))
 
-        
-        d.append(i.draw(h=h, w=self.width))
-            
-        d.append(j.draw(h=h, w=self.width))
+    def show(self):
+        self.d.setRenderSize(self.size)
+        return self.d
 
-###        for aln in alignments:
-  #          for e in aln.draw(h=h, w=self.width):
-  #              d.append(e)
+    def to_png(self, path):
+        self.d.savePng(path)
 
-        d.setRenderSize(self.size)
-        return d
-
-    def to_png(self, d, path):
-        d.savePng(path)
 
 class Track:
-    """
-    individual gene track
+    """Track representing an interval of a genomic sequence
     """
     def __init__(self, a, b, label=None, color='lightgrey', ticks=[],
                  regions=[], direction=""):
@@ -60,64 +52,57 @@ class Track:
     def add_tick(self, tick):
         self.ticks.append(tick)
 
-    def draw(self, h=10, w=700):
-        #r = (self.b + x) / w
-        #self.x = x
-        #self.y = y
+    def draw(self, x=0, y=0, h=10, w=700):
 
-        d = draw.Group()
+        d = draw.Group(transform="translate({} {})".format(x, y))
         d.append(draw.Rectangle(self.a, 0, self.b - self.a, h, fill=self.color,
-            stroke=self.color))
+                                stroke=self.color))
 
         for tick in self.ticks:
-            d.append(draw.Lines(self.a + tick, 0, self.a + tick,  stroke='red'))
+            d.append(draw.Lines(self.a + tick, 0, self.a + tick, stroke='red'))
 
         if self.label:
-            d.append(draw.Text(self.label, h, (self.b + self.a) / 2, h + 2))
+            d.append(draw.Text(self.label, h, (self.b + self.a) / 2, h * 2,
+                               center=True))
 
         if 'f' in self.direction:
             d.append(draw.Lines(self.b, 0, self.b + 5, h / 2, self.b, h,
-                fill=self.color, stroke=self.color))
+                                fill=self.color, stroke=self.color))
         if 'r' in self.direction:
             d.append(draw.Lines(self.a, 0, self.a - 5, h / 2, self.a, h,
-                fill=self.color, stroke=self.color))
+                                fill=self.color, stroke=self.color))
 
         for a, b, color in self.regions:
-            d.append(draw.Rectangle(a, 0, b - a, h, fill=color))
+            d.append(draw.Rectangle(a, 0, b - a, h, fill=color, stroke=color))
 
         return d
 
 
 class Label:
-    """
-    label wrapper
+    """Wrap a text label
     """
     def __init__(self, text, style=None):
         pass
 
 
 class Alignment:
-    """
-    expressing the alignment of two tracks
+    """Link two tracks to illustrate similar regions
     """
     def __init__(self, track1, track2, connections, text=None, style=None):
         self.t1 = track1
         self.t2 = track2
         self.connections = connections
 
-#    def add_alignment(self, a, b):
-#        pass
+    def draw(self, x=0, y=0, h=10, w=1, gap=50):
+        g = draw.Group(transform="translate({} {})".format(x, y))
+        g.append(self.t1.draw(x=0, y=0))
+        g.append(self.t2.draw(x=0, y=-gap))
 
-    def draw(self, h=10, w=1):
-        d = []
         for bottom, top in self.connections:
-            d.append(draw.Lines(w / bottom, self.t1.y + h,
-                                w / top, self.t2.y, stroke='black'))
-            d.append(draw.Lines(w / bottom, self.t1.y,
-                                w / bottom, self.t1.y + h, stroke='black'))
-            d.append(draw.Lines(w / top, self.t2.y,
-                                w / top, self.t2.y + h, stroke='black'))
-        return d
+            g.append(draw.Lines(bottom, h, top, gap, stroke='black'))
+            g.append(draw.Lines(bottom, 0, bottom, h, stroke='black'))
+            g.append(draw.Lines(top, gap, top, gap + h, stroke='black'))
+        return g
 
 
 class Tick:
