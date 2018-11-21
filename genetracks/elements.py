@@ -93,7 +93,7 @@ class Alignment:
         self.t2 = track2
         self.connections = connections
 
-    def draw(self, x=0, y=0, h=10, w=1, gap=50):
+    def draw(self, x=0, y=0, h=10, gap=50):
         g = draw.Group(transform="translate({} {})".format(x, y))
         g.append(self.t1.draw(x=0, y=0))
         g.append(self.t2.draw(x=0, y=-gap))
@@ -104,6 +104,23 @@ class Alignment:
             g.append(draw.Lines(top, gap, top, gap + h, stroke='black'))
         return g
 
+class Multitrack:
+    """Pack multiple tracks onto a line
+    """
+    def __init__(self, tracks, join=False):
+        self.tracks = tracks
+        self.join = join
+
+    def draw(self, x=0, y=0, h=10):
+        g = draw.Group(transform="translate({} {})".format(x, y))
+        if self.join:
+            start = min([t.a for t in self.tracks])
+            end = max([t.b for t in self.tracks])
+            g.append(draw.Lines(start, h / 2, end, h / 2, stroke='lightgrey'))
+        for track in self.tracks:
+            g.append(track.draw())
+
+        return g
 
 class Tick:
     """
