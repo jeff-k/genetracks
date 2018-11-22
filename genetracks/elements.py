@@ -1,5 +1,4 @@
-"""
-basic elements of gene track figures
+"""Basic drawing elements for gene track figures
 """
 import drawSvg as draw
 
@@ -19,8 +18,8 @@ class Figure:
     def to_svg(self, g):
         pass
 
-    def add_track(self, track):
-        self.d.append(track.draw(y=-(self.tracks * 30)))
+    def add_track(self, track, gap=30, h=10):
+        self.d.append(track.draw(h=h, y=-(self.tracks * gap)))
         self.tracks += 1
 
     def add_alignment(self, alignment):
@@ -52,18 +51,11 @@ class Track:
     def add_tick(self, tick):
         self.ticks.append(tick)
 
-    def draw(self, x=0, y=0, h=10, w=700):
+    def draw(self, x=0, y=0, h=10):
 
         d = draw.Group(transform="translate({} {})".format(x, y))
-        d.append(draw.Rectangle(self.a, 0, self.b - self.a, h, fill=self.color,
-                                stroke=self.color))
-
-        for tick in self.ticks:
-            d.append(draw.Lines(self.a + tick, 0, self.a + tick, stroke='red'))
-
-        if self.label:
-            d.append(draw.Text(self.label, h, (self.b + self.a) / 2, h * 2,
-                               center=True))
+        d.append(draw.Rectangle(self.a, 0, self.b - self.a, h,
+                                fill=self.color, stroke=self.color))
 
         if 'f' in self.direction:
             d.append(draw.Lines(self.b, 0, self.b + 5, h / 2, self.b, h,
@@ -75,14 +67,32 @@ class Track:
         for a, b, color in self.regions:
             d.append(draw.Rectangle(a, 0, b - a, h, fill=color, stroke=color))
 
+        for tick in self.ticks:
+            d.append(draw.Lines(tick, 0, tick, h, stroke='red'))
+
+        if self.label:
+            label = self.label
+            font_size = 10
+            offset = h + font_size
+            if isinstance(self.label, Label):
+                label = self.label.text
+                font_size = self.label.font_size
+                if self.label.offset is not None:
+                    offset = self.label.offset
+
+            d.append(draw.Text(label, font_size, (self.b + self.a) / 2,
+                               offset, center=True))
+
         return d
 
 
 class Label:
     """Wrap a text label
     """
-    def __init__(self, text, style=None):
-        pass
+    def __init__(self, text, font_size=10, offset=None):
+        self.font_size = font_size
+        self.offset = offset
+        self.text = text
 
 
 class Alignment:
@@ -104,6 +114,7 @@ class Alignment:
             g.append(draw.Lines(top, gap, top, gap + h, stroke='black'))
         return g
 
+
 class Multitrack:
     """Pack multiple tracks onto a line
     """
@@ -118,9 +129,10 @@ class Multitrack:
             end = max([t.b for t in self.tracks])
             g.append(draw.Lines(start, h / 2, end, h / 2, stroke='lightgrey'))
         for track in self.tracks:
-            g.append(track.draw())
+            g.append(track.draw(h=h))
 
         return g
+
 
 class Tick:
     """
