@@ -25,6 +25,10 @@ class Figure:
     def add_alignment(self, alignment):
         self.d.append(alignment.draw(h=10))
 
+    def add_coverage(self, coverage, gap=30, h=10, offset=0):
+        self.d.append(coverage.draw(y=-(self.tracks * gap) + offset, h=10))
+        self.tracks += 1
+
     def show(self):
         self.d.setRenderSize(self.size)
         return self.d
@@ -77,12 +81,35 @@ class Track:
             if isinstance(self.label, Label):
                 label = self.label.text
                 font_size = self.label.font_size
+#                font_family = self.label.font_family
                 if self.label.offset is not None:
                     offset = self.label.offset
 
             d.append(draw.Text(label, font_size, (self.b + self.a) / 2,
-                               offset, center=True))
+                               offset, font_family='monospace', center=True))
 
+        return d
+
+
+class Coverage:
+    """Coverage graph
+    """
+    def __init__(self, a, b, ys, height = 10, color='blue'):
+        self.color = color
+        self.a = a
+        self.b = b
+        self.ys = ys
+        self.height = height
+
+    def draw(self, x=0, y=0, h=100):
+
+        d = draw.Group(transform="translate({} {})".format(x, y))
+
+        scale = max(self.ys) / self.height
+
+        for i, y in enumerate(self.ys):
+            d.append(draw.Rectangle(self.a + (i * self.b), 0, self.b, y / scale,
+                                    fill=self.color))#, stroke=self.color))
         return d
 
 
