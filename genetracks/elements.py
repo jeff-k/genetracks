@@ -94,8 +94,9 @@ class Track:
 class Coverage:
     """Coverage graph
     """
-    def __init__(self, a, b, ys, height = 10, color='blue'):
+    def __init__(self, a, b, ys, height = 10, color='blue', opacity='1.0'):
         self.color = color
+        self.opacity = opacity
         self.a = a
         self.b = b
         self.ys = ys
@@ -109,7 +110,7 @@ class Coverage:
 
         for i, y in enumerate(self.ys):
             d.append(draw.Rectangle(self.a + (i * self.b), 0, self.b, y / scale,
-                                    fill=self.color))#, stroke=self.color))
+                                    fill=self.color, fill_opacity=self.opacity))#, stroke=self.color))
         return d
 
 
