@@ -8,36 +8,73 @@ class Figure:
     def __init__(self, tracks=[], height=75, width=700, size=700):
         self.padding = 10
         self.tracks = tracks
-        self.height = height
+        self.height = 0
         self.size = size
         self.track_height = 10
         self.width = width # horizontal scaling
-        self.d = draw.Drawing(self.size, self.height, origin=(0, 0))
+        #self.d = draw.Drawing(origin=(0,0))
+        self.elements = []
+#        self.d = draw.Drawing(self.size, self.height, origin=(0, 0))
         self.tracks = 0
+        self.y_max = width
 
     def to_svg(self, g):
         pass
 
-    def add_track(self, track, gap=30, h=10):
-        self.d.append(track.draw(h=h, y=-(self.tracks * gap)))
+    def add_track(self, track, gap=30, h=None):
+        h = self.track_height
+        track.set_y(-(self.tracks * gap))
+        track.set_h(h)
+        self.elements.append(track)
+        self.height += h
+        self.y_max = max(self.y_max, track.b)
+#        self.d.append(track.draw(h=h, y=-(self.tracks * gap, yscale=self.width)))
         self.tracks += 1
 
     def add_alignment(self, alignment):
-        self.d.append(alignment.draw(h=10))
+        alignment.set_h(10)
+        self.height += 30
+        self.elements.append(alignment)
+#        self.d.append(alignment.draw(h=10, yscale=self.width))
 
-    def add_coverage(self, coverage, gap=30, h=10, offset=0):
-        self.d.append(coverage.draw(y=-(self.tracks * gap) + offset, h=10))
+    def add_coverage(self, coverage, gap=30, h=None, offset=0):
+#        self.d.append(coverage.draw(y=-(self.tracks * gap) + offset, h=10))
+        h = self.track_height
+        self.elements.append(coverage)
+        self.height += h
         self.tracks += 1
 
     def show(self):
-        self.d.setRenderSize(self.size)
-        return self.d
+        d = draw.Drawing(self.width, self.height, origin=(0,0))
+        yscale = self.width / self.y_max
+        for element in self.elements:
+            d.append(element.draw(yscale=yscale))
+
+        d.setRenderSize(self.size)
+        return d
 
     def to_png(self, path):
-        self.d.savePng(path)
+        self.show().savePng(path)
 
+class Element:
+    """Baseclass for drawable element
+    """
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.y_max = y
 
-class Track:
+    def set_y(self, y):
+        self.y = y
+
+    def set_h(self, y):
+        self.h = h
+
+    def draw(self, x=0, y=0, xscale=1.0):
+        h = self.h
+        y = self.y
+
+class Track(Element):
     """Track representing an interval of a genomic sequence
     """
     def __init__(self, a, b, label=None, color='lightgrey', ticks=[],
@@ -47,6 +84,7 @@ class Track:
         self.b = b
         self.x = 0
         self.y = 0
+        self.h = 10
         self.ticks = ticks
         self.label = label
         self.direction = direction
@@ -55,8 +93,11 @@ class Track:
     def add_tick(self, tick):
         self.ticks.append(tick)
 
-    def draw(self, x=0, y=0, h=10):
-
+    def draw(self, x=0, y=0, h=10, yscale=1.0):
+        h = self.h
+        y = self.y
+        self.a = self.a * yscale
+        self.b = self.b * yscale
         d = draw.Group(transform="translate({} {})".format(x, y))
         d.append(draw.Rectangle(self.a, 0, self.b - self.a, h,
                                 fill=self.color, stroke=self.color))
@@ -103,7 +144,7 @@ class Coverage:
         self.height = height
 
     def draw(self, x=0, y=0, h=100):
-
+        assert isinstance(x, int) and isinstance(y, int)
         d = draw.Group(transform="translate({} {})".format(x, y))
 
         scale = max(self.ys) / self.height
@@ -131,7 +172,7 @@ class Alignment:
         self.t2 = track2
         self.connections = connections
 
-    def draw(self, x=0, y=0, h=10, gap=50):
+    def draw(self, x=0, y=0, h=10, gap=50, yscale=1.0):
         g = draw.Group(transform="translate({} {})".format(x, y))
         g.append(self.t1.draw(x=0, y=0))
         g.append(self.t2.draw(x=0, y=-gap))
@@ -143,21 +184,32 @@ class Alignment:
         return g
 
 
-class Multitrack:
+class Multitrack(Element):
     """Pack multiple tracks onto a line
     """
     def __init__(self, tracks, join=False):
         self.tracks = tracks
         self.join = join
+        self.y = 0
+        self.height = 10
+        self.b = 0
 
-    def draw(self, x=0, y=0, h=10):
+    def set_y(self, y):
+        self.y = y
+
+    def set_h(self, h):
+        self.height = h
+
+    def draw(self, x=0, y=0, h=10, yscale=1.0):
+        y = self.y
+        h = self.height
         g = draw.Group(transform="translate({} {})".format(x, y))
         if self.join:
             start = min([t.a for t in self.tracks])
             end = max([t.b for t in self.tracks])
             g.append(draw.Lines(start, h / 2, end, h / 2, stroke='lightgrey'))
         for track in self.tracks:
-            g.append(track.draw(h=h))
+            g.append(track.draw(h=h, yscale=yscale))
 
         return g
 
