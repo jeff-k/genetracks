@@ -5,83 +5,72 @@ import drawSvg as draw
 class Figure:
     """Genetracks Figure
     """
-    def __init__(self):
-        self.padding = 10
-        self.height = 0
-        self.track_height = 10
+    def __init__(self, padding=5, track_height=10):
+        self.padding = padding
+        self.track_height = track_height
         self.elements = []
-        self.x_max = 0
-        self.tracks = 0
+        self.w = 0
+        self.h = 0
 
-    def to_svg(self, g):
-        pass
-
-    def add_track(self, track, gap=30, h=None):
-        h = self.track_height
-        #track.set_y(-(self.tracks * gap))
-        track.y = -(self.tracks * gap)
-        self.elements.append(track)
-        self.height += track.h + gap
-        self.x_max = max(self.x_max, track.b)
-        self.tracks += 1
-
-    def add_alignment(self, alignment):
-        self.height += alignment.h
-        self.x_max = max(self.x_max, alignment.b)
-        self.elements.append(alignment)
-
-    def add_coverage(self, coverage, gap=30, h=None, offset=0):
-        h = self.track_height
-        self.elements.append(coverage)
-        self.height += coverage.h
-        self.tracks += 1
+    def add(self, element, gap=10, padding=None):
+        if padding is None:
+            padding = self.padding
+        self.elements.append((self.h + padding, element))
+        self.h += element.h + gap + padding
+        self.w = max(self.w, element.w)
 
     def show(self, w=None, h=None):
-        width = self.x_max
-
         xscale=1.0
+        if h is None:
+            h = self.h
         if w is None:
-            w = width
+            w = self.w
         else:
-            xscale = w / self.x_max
+            xscale = w / self.w
 
         if h is None:
-            h = self.height
+            h = self.h
 
-        d = draw.Drawing(width * xscale, self.height, origin=(0,0))
-        for element in self.elements:
-            d.append(element.draw(xscale=xscale))
+        d = draw.Drawing(self.w * xscale, h, origin=(0,0))
+        for y, element in self.elements:
+            print("drawing {} @ {}".format(type(element), y))
+            d.append(element.draw(xscale=xscale, y=y))
 
 #        d.setRenderSize(w, h)
         return d
 
-    def to_png(self, path):
-        self.show().savePng(path)
+    def to_svg(self, path, w=None, h=None):
+        self.show(w=w, h=h).saveSvg(path) 
+
+    def to_png(self, path, w=None, h=None):
+        self.show(w=w, h=h).savePng(path)
+
 
 class Element:
     """Baseclass for drawable element
     """
-    def __init__(self, x, y):
+    def __init__(self, x, y, h=10, w=0):
         self.x = x
         self.y = y
-        self.h = 10 
+        self.h = h 
+        self.w = w
         self.x_max = x 
 
     def draw(self, x=0, y=0, xscale=1.0):
         h = self.h
         y = self.y
 
+
 class Track(Element):
     """Track representing an interval of a genomic sequence
     """
-    def __init__(self, a, b, label=None, color='lightgrey', ticks=[],
+    def __init__(self, a, b, h=10, label=None, color='lightgrey', ticks=[],
                  regions=[], direction=""):
         self.color = color
         self.a = a
         self.b = b
-        self.x = 0
-        self.y = 0
-        self.h = 10
+        self.w = b
+        self.h = h
         self.ticks = ticks
         self.label = label
         self.direction = direction
@@ -92,21 +81,21 @@ class Track(Element):
 
     def draw(self, x=0, y=0, xscale=1.0):
         h = self.h
-        y = self.y
         a = self.a * xscale
         b = self.b * xscale
         x = x * xscale
         
-        #assert isinstance(x, int) and isinstance(y, int)
-        d = draw.Group(transform="translate({} {})".format(x, y))
-        d.append(draw.Rectangle(a, 0, b - a, h,
+        #assert isinstance(x, float) and isinstance(y, float)
+        d = draw.Group(transform="translate({} {})".format(x, -y))
+        print("\tdrawing rect {} {} {} {} ({} {})".format(a, 0, b-a, h, x, y))
+        d.append(draw.Rectangle(a, 0, b-a, h,
                                 fill=self.color, stroke=self.color))
 
         if 'f' in self.direction:
-            d.append(draw.Lines(b, 0, b + (5 * xscale), h / 2, b, h,
+            d.append(draw.Lines(b, 0, b + (5 * xscale), (h/2), b, h,
                                 fill=self.color, stroke=self.color))
         if 'r' in self.direction:
-            d.append(draw.Lines(a, 0, a - 5, h / 2, a, h,
+            d.append(draw.Lines(a, 0, a - (5 * xscale), (h/2), a, h,
                                 fill=self.color, stroke=self.color))
 
         for r_a, r_b, color in self.regions:
@@ -123,19 +112,13 @@ class Track(Element):
             font_size = 10
             offset = h + font_size
             if isinstance(self.label, Label):
-                label = self.label.text
-                font_size = self.label.font_size
-#                font_family = self.label.font_family
-                if self.label.offset is not None:
-                    offset = self.label.offset
-
-            d.append(draw.Text(label, font_size, (b + a) / 2,
-                               offset, font_family='monospace', center=True))
-
+                d.append(label.draw(x=(b+a)/2, y=y))
+            elif isinstance(self.label, str):
+                d.append(Label(label).draw(x=(b+a)/2, y=y))
         return d
 
 
-class Coverage:
+class Coverage(Element):
     """Coverage graph
     """
     def __init__(self, a, b, ys, height = 10, color='blue', opacity='1.0'):
@@ -148,7 +131,7 @@ class Coverage:
 
     def draw(self, x=0, y=0, h=100):
         #assert isinstance(x, int) and isinstance(y, int)
-        d = draw.Group(transform="translate({} {})".format(x, y))
+        d = draw.Group(transform="translate({} {})".format(x, -y))
 
         for i, y in enumerate(self.ys):
             d.append(draw.Rectangle(self.a + (i * self.b), 0, self.b, y,
@@ -156,7 +139,7 @@ class Coverage:
         return d
 
 
-class Label:
+class Label(Element):
     """Wrap a text label
     """
     def __init__(self, text, font_size=10, offset=None):
@@ -164,8 +147,20 @@ class Label:
         self.offset = offset
         self.text = text
 
+    def draw(self, x=0, y=0, xscale=1.0):
+        x = x * xscale
+#           font_family = self.label.font_family
+        if self.offset is not None:
+            offset = self.offset
 
-class Alignment:
+        d = draw.Group(transform="translate({} {})".format(x, -y))
+        d.append(draw.Text(self.text, self.font_size, x,
+                 y, font_family='monospace', center=True))
+        return d
+
+
+
+class Alignment(Element):
     """Link two tracks to illustrate similar regions
     """
     def __init__(self, track1, track2, connections, text=None, style=None,
@@ -178,15 +173,15 @@ class Alignment:
 
     def draw(self, x=0, y=0, h=10, gap=50, xscale=1.0):
         g = draw.Group(transform="translate({} {})".format(x, y))
-        g.append(self.t1.draw(x=0, y=0, xscale=xscale))
-        g.append(self.t2.draw(x=0, y=-gap, xscale=xscale))
+        g.append(self.t1.draw(x=0, y=y, xscale=xscale))
+        g.append(self.t2.draw(x=0, y=y+t1.h+gap, xscale=xscale))
 
         for bottom, top in self.connections:
             bottom = bottom * xscale
             top = top * xscale
-            g.append(draw.Lines(bottom, h, top, gap, stroke='black'))
-            g.append(draw.Lines(bottom, 0, bottom, h, stroke='black'))
-            g.append(draw.Lines(top, gap, top, gap + h, stroke='black'))
+            g.append(draw.Lines(bottom, h+y, top, gap+y, stroke='black'))
+            g.append(draw.Lines(bottom, y, bottom, h+y, stroke='black'))
+            g.append(draw.Lines(top, gap+y, top, gap+h+y, stroke='black'))
         return g
 
 
@@ -198,13 +193,7 @@ class Multitrack(Element):
         self.join = join
         self.y = 0
         self.h = h 
-        self.b = max(map(lambda x: x.b, tracks))
-
-    def set_y(self, y):
-        self.y = y
-
-    def set_h(self, h):
-        self.height = h
+        self.w = max(map(lambda x: x.b, tracks))
 
     def draw(self, x=0, y=0, xscale=1.0):
         y = self.y
@@ -222,8 +211,7 @@ class Multitrack(Element):
 
 
 class Tick:
+    """Wrapper for tick
     """
-    wrapper for tick
-    """
-    def __init__(self, pos, color='red'):
-        self.pos = pos
+    def __init__(self, x, color='red'):
+        self.x = x

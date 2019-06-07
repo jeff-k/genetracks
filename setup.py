@@ -5,7 +5,7 @@ with open("README.md", 'r') as fh:
 
 setuptools.setup(
     name="genetracks",
-    version="0.0.1",
+    version="0.0.2",
     author="jeff-k",
     author_email="jeff_k@fastmail.com",
     description="Generate track diagrams for genomic alignments",
