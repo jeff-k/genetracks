@@ -5,12 +5,17 @@ import drawSvg as draw
 class Figure:
     """Genetracks Figure
     """
-    def __init__(self, padding=5, track_height=10):
-        self.padding = padding
+    def __init__(self, padding=None, track_height=10):
         self.track_height = track_height
+
+        if padding is None:
+            self.padding = track_height/2
+        else:
+            self.padding = padding
+
         self.elements = []
         self.w = 0
-        self.h = 0
+        self.h = self.padding
 
     def add(self, element, gap=10, padding=None):
         if padding is None:
@@ -33,8 +38,8 @@ class Figure:
 
         d = draw.Drawing(self.w * xscale, h, origin=(0,0))
         for y, element in self.elements:
-            print("drawing {} @ {}".format(type(element), y))
-            d.append(element.draw(xscale=xscale, y=y))
+            print("drawing {} @ {}".format(type(element), y-h))
+            d.append(element.draw(xscale=xscale, y=y-h))
 
 #        d.setRenderSize(w, h)
         return d
@@ -54,11 +59,9 @@ class Element:
         self.y = y
         self.h = h 
         self.w = w
-        self.x_max = x 
 
     def draw(self, x=0, y=0, xscale=1.0):
-        h = self.h
-        y = self.y
+        pass
 
 
 class Track(Element):
@@ -86,7 +89,7 @@ class Track(Element):
         x = x * xscale
         
         #assert isinstance(x, float) and isinstance(y, float)
-        d = draw.Group(transform="translate({} {})".format(x, -y))
+        d = draw.Group(transform="translate({} {})".format(x, y))
         print("\tdrawing rect {} {} {} {} ({} {})".format(a, 0, b-a, h, x, y))
         d.append(draw.Rectangle(a, 0, b-a, h,
                                 fill=self.color, stroke=self.color))
@@ -112,9 +115,9 @@ class Track(Element):
             font_size = 10
             offset = h + font_size
             if isinstance(self.label, Label):
-                d.append(label.draw(x=(b+a)/2, y=y))
+                d.append(label.draw(x=(b+a)/2, y=0))
             elif isinstance(self.label, str):
-                d.append(Label(label).draw(x=(b+a)/2, y=y))
+                d.append(Label(label).draw(x=(b+a)/2, y=0))
         return d
 
 
@@ -126,15 +129,21 @@ class Coverage(Element):
         self.opacity = opacity
         self.a = a
         self.b = b
+        self.h = height
         self.ys = ys
-        self.height = height
+        self.w = b
 
-    def draw(self, x=0, y=0, h=100):
+    def draw(self, x=0, y=0, xscale=1.0):
         #assert isinstance(x, int) and isinstance(y, int)
-        d = draw.Group(transform="translate({} {})".format(x, -y))
+        h = self.h
+        a = self.a * xscale
+        b = self.b * xscale
+        x = x * xscale
+        d = draw.Group(transform="translate({} {})".format(x, y))
 
-        for i, y in enumerate(self.ys):
-            d.append(draw.Rectangle(self.a + (i * self.b), 0, self.b, y,
+        for i, v in enumerate(self.ys):
+            print(a + i, 0, b, v)
+            d.append(draw.Rectangle(a+i, 0, a+i+1, v,
                                     fill=self.color, fill_opacity=self.opacity))#, stroke=self.color))
         return d
 
@@ -153,9 +162,9 @@ class Label(Element):
         if self.offset is not None:
             offset = self.offset
 
-        d = draw.Group(transform="translate({} {})".format(x, -y))
-        d.append(draw.Text(self.text, self.font_size, x,
-                 y, font_family='monospace', center=True))
+        d = draw.Group(transform="translate({} {})".format(x, y))
+        d.append(draw.Text(self.text, self.font_size, 0,
+                 self.font_size / 2, font_family='monospace', center=True))
         return d
 
 
