@@ -211,6 +211,7 @@ class Multitrack(Element):
         self.join = join
         self.h = max(map(lambda x: x.h, tracks))
         self.w = max(map(lambda x: x.b, tracks))
+        self.b = max(map(lambda x: x.b, tracks))
 
     def draw(self, x=0, y=0, xscale=1.0):
         h = self.h
