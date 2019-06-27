@@ -140,9 +140,9 @@ class Coverage(Element):
         b = self.b * xscale
         x = x * xscale
         d = draw.Group(transform="translate({} {})".format(x, y))
-
+        yscale = self.h / max(self.ys)
         for i, v in enumerate(self.ys):
-            d.append(draw.Rectangle(a+(i*xscale), 0, xscale, v,
+            d.append(draw.Rectangle(a+(i*xscale), 0, xscale, v*yscale,
                                     fill=self.color, fill_opacity=self.opacity))#, stroke=self.color))
         return d
 
