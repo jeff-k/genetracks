@@ -18,11 +18,18 @@ class Figure:
         self.h = self.padding
 
     def add(self, element, gap=10, padding=None):
-        if padding is None:
-            padding = self.padding
-        self.elements.append((self.h + padding, element))
-        self.h += element.h + gap + padding
+        """ Add an element to the figure.
+
+        :param element: a new Track or other element to add
+        :param gap: the distance to leave below the new track
+        :param padding: the distance to leave above the new track
+        """
+        if padding is not None:
+            self.h += padding - self.padding
+        self.elements.append((self.h + element.h, element))
+        self.h += element.h + gap
         self.w = max(self.w, element.w)
+        self.padding = gap
 
     def show(self, w=None, h=None):
         xscale=1.0
