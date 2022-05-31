@@ -17,3 +17,11 @@ for alignment in pysam.AlignmentFile(sys.argv[1]):
 
 f.show(w=900).saveSvg("alignment.svg")
 ```
+
+## JSON serialisation
+
+...
+
+## Rust support (experimental)
+
+`genetracks` is also a rust package.
