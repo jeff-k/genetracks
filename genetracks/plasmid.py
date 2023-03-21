@@ -1,6 +1,6 @@
 """Circularized genome figures
 """
-import drawSvg as draw
+import drawsvg as draw
 
 class Plasmid:
     """Cicular genome figure
@@ -20,7 +20,7 @@ class Plasmid:
         for region in self.regions:
             d.append(region.draw(self.length))
 
-        d.setRenderSize(self.size)
+        d.set_render_size(self.size)
         return d
 
 class Region:

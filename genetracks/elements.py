@@ -1,6 +1,6 @@
 """Basic drawing elements for gene track figures
 """
-import drawSvg as draw
+import drawsvg as draw
 
 class Figure:
     """Genetracks Figure
@@ -51,10 +51,10 @@ class Figure:
         return d
 
     def to_svg(self, path, w=None, h=None):
-        self.show(w=w, h=h).saveSvg(path) 
+        self.show(w=w, h=h).save_svg(path)
 
     def to_png(self, path, w=None, h=None):
-        self.show(w=w, h=h).savePng(path)
+        self.show(w=w, h=h).save_png(path)
 
 
 class Element:
