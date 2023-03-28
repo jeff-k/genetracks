@@ -15,5 +15,5 @@ f = Figure()
 for alignment in pysam.AlignmentFile(sys.argv[1]):
   f.add(Track(alignment.query_start, alignment.query_end))
 
-f.show(w=900).saveSvg("alignment.svg")
+f.show(w=900).save_svg("alignment.svg")
 ```
