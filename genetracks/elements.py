@@ -174,7 +174,7 @@ class Label(Element):
 
         d = draw.Group(transform="translate({} {})".format(x, y))
         d.append(draw.Text(self.text, self.font_size, self.w,
-                 offset, font_family='monospace', center=True))
+                 offset, font_family='monospace', text_anchor='middle'))
         return d
 
 
