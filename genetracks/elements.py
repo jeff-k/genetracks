@@ -43,7 +43,7 @@ class Figure:
         if h is None:
             h = self.h
 
-        d = draw.Drawing(self.w * xscale, h, origin=(0,0))
+        d = draw.Drawing(self.w * xscale, h, origin=(0,0), context=draw.Context(invert_y=True))
         for y, element in self.elements:
             d.append(element.draw(xscale=xscale, y=y-h))
 
@@ -51,10 +51,10 @@ class Figure:
         return d
 
     def to_svg(self, path, w=None, h=None):
-        self.show(w=w, h=h).save_svg(path)
+        self.show(w=w, h=h).save_svg(path, context=draw.Context(invert_y=True))
 
     def to_png(self, path, w=None, h=None):
-        self.show(w=w, h=h).save_png(path)
+        self.show(w=w, h=h).save_png(path, context=draw.Context(invert_y=True))
 
 
 class Element:
@@ -174,7 +174,7 @@ class Label(Element):
 
         d = draw.Group(transform="translate({} {})".format(x, y))
         d.append(draw.Text(self.text, self.font_size, self.w,
-                 (self.font_size/2 + offset), font_family='monospace', center=True))
+                 offset, font_family='monospace', text_anchor='middle'))
         return d
 
 
