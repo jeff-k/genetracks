@@ -30,5 +30,5 @@ class Region:
         self.b = b
 
     def draw(self, circ):
-        return draw.Arc(0, 0, 0.5, self.a, self.b, stroke_width='0.04',
+        return draw.Arc(0, 0, 0.5, self.b/circ*360, self.a/circ*360, stroke_width='0.04',
                         stroke=self.color, fill_opacity='0.0')

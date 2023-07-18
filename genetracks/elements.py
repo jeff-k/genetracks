@@ -195,7 +195,7 @@ class Alignment(Element):
         self.w = max(track1.w, track2.w)
 
     def draw(self, x=0, y=0, xscale=1.0):
-        d = draw.Group(transform="translate({} {})".format(x, y))
+        d = draw.Group(transform="translate({} {})".format(x, y-self.gap))
         d.append(self.t1.draw(xscale=xscale))
         d.append(self.t2.draw(y=self.t1.h+self.gap, xscale=xscale))
 
