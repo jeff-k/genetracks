@@ -21,7 +21,3 @@ f.show(w=900).save_svg("alignment.svg")
 ## JSON serialisation
 
 ...
-
-## Rust support (experimental)
-
-`genetracks` is also a rust package.
