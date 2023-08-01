@@ -1,6 +1,6 @@
 """Circularized genome figures
 """
-import drawSvg as draw
+import drawsvg as draw
 
 class Plasmid:
     """Cicular genome figure
@@ -12,7 +12,7 @@ class Plasmid:
         self.color = color
 
     def show(self):
-        d = draw.Drawing(1.4, 1.4, origin='center')
+        d = draw.Drawing(1.4, 1.4, origin='center', context=draw.Context(invert_y=True))
 
         d.append(draw.Circle(0, 0, 0.5, stroke_width='0.005', stroke=self.color,
                              fill_opacity='0.0'))
@@ -20,7 +20,7 @@ class Plasmid:
         for region in self.regions:
             d.append(region.draw(self.length))
 
-        d.setRenderSize(self.size)
+        d.set_render_size(self.size)
         return d
 
 class Region:
@@ -30,5 +30,5 @@ class Region:
         self.b = b
 
     def draw(self, circ):
-        return draw.Arc(0, 0, 0.5, self.a, self.b, stroke_width='0.04',
+        return draw.Arc(0, 0, 0.5, self.b/circ*360, self.a/circ*360, stroke_width='0.04',
                         stroke=self.color, fill_opacity='0.0')
