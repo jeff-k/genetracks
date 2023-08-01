@@ -9,6 +9,53 @@ Interval = tuple[float, float, str]
 Tick = float
 
 
+class Element:
+    """Baseclass for drawable element"""
+
+    def __init__(self, x: float, y: float, h: float = 10, w: float = 0):
+        self.x: float = x
+        self.y: float = y
+        self.h: float = h
+        self.w: float = w
+
+    def draw(self, x: float = 0, y: float = 0, xscale: float = 1.0):
+        pass
+
+
+class Label(Element):
+    """Wrap a text label"""
+
+    def __init__(self, x: float, text: str, font_size: float = 10, offset: float = 0):
+        self.font_size = font_size
+        self.offset = offset
+        self.text: str = str(text)
+        self.h: float = font_size
+        self.w = x  # it would be cool to know how wide the text is
+
+    def draw(
+        self, x: float | None = None, y: float = 0, xscale: float = 1.0
+    ) -> draw.Group:
+        #           font_family = self.label.font_family
+        if self.offset is not None:
+            offset = self.offset
+
+        if x is None:
+            x = self.w * xscale
+
+        d = draw.Group(transform="translate({} {})".format(x, y))
+        d.append(
+            draw.Text(
+                self.text,
+                self.font_size,
+                self.w,
+                offset,
+                font_family="monospace",
+                text_anchor="middle",
+            )
+        )
+        return d
+
+
 class Figure:
     """Genetracks Figure"""
 
@@ -65,19 +112,6 @@ class Figure:
 
     def to_png(self, path: Path, w: float | None = None, h: float | None = None):
         self.show(w=w, h=h).save_png(path, context=draw.Context(invert_y=True))
-
-
-class Element:
-    """Baseclass for drawable element"""
-
-    def __init__(self, x: float, y: float, h: float = 10, w: float = 0):
-        self.x: float = x
-        self.y: float = y
-        self.h: float = h
-        self.w: float = w
-
-    def draw(self, x: float = 0, y: float = 0, xscale: float = 1.0):
-        pass
 
 
 class Track(Element):
@@ -197,40 +231,6 @@ class Coverage(Element):
                     fill_opacity=self.opacity,
                 )
             )  # , stroke=self.color))
-        return d
-
-
-class Label(Element):
-    """Wrap a text label"""
-
-    def __init__(self, x: float, text: str, font_size: float = 10, offset: float = 0):
-        self.font_size = font_size
-        self.offset = offset
-        self.text: str = str(text)
-        self.h: float = font_size
-        self.w = x  # it would be cool to know how wide the text is
-
-    def draw(
-        self, x: float | None = None, y: float = 0, xscale: float = 1.0
-    ) -> draw.Group:
-        #           font_family = self.label.font_family
-        if self.offset is not None:
-            offset = self.offset
-
-        if x is None:
-            x = self.w * xscale
-
-        d = draw.Group(transform="translate({} {})".format(x, y))
-        d.append(
-            draw.Text(
-                self.text,
-                self.font_size,
-                self.w,
-                offset,
-                font_family="monospace",
-                text_anchor="middle",
-            )
-        )
         return d
 
 

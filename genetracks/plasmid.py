@@ -5,6 +5,25 @@ import drawsvg as draw  # type: ignore
 Color = str
 
 
+class Region:
+    def __init__(self, a: float, b: float, color: Color = "lightgrey"):
+        self.color = color
+        self.a = a
+        self.b = b
+
+    def draw(self, circ: float) -> draw.Arc:
+        return draw.Arc(
+            0,
+            0,
+            0.5,
+            self.b / circ * 360,
+            self.a / circ * 360,
+            stroke_width="0.04",
+            stroke=self.color,
+            fill_opacity="0.0",
+        )
+
+
 class Plasmid:
     """Cicular genome figure"""
 
@@ -34,22 +53,3 @@ class Plasmid:
 
         d.set_render_size(self.size)
         return d
-
-
-class Region:
-    def __init__(self, a: float, b: float, color: Color = "lightgrey"):
-        self.color = color
-        self.a = a
-        self.b = b
-
-    def draw(self, circ: float) -> draw.Arc:
-        return draw.Arc(
-            0,
-            0,
-            0.5,
-            self.b / circ * 360,
-            self.a / circ * 360,
-            stroke_width="0.04",
-            stroke=self.color,
-            fill_opacity="0.0",
-        )
