@@ -3,7 +3,7 @@
 import drawsvg as draw  # type: ignore
 from .elements import Color
 
-#Color = str
+# Color = str
 
 
 class Region:

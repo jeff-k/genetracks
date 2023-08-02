@@ -1,5 +1,6 @@
 import unittest
-from genetracks import Figure, Track, Alignment, Multitrack, Label, Plasmid, Region
+from genetracks.elements import Figure, Track, Alignment, Multitrack, Label
+from genetracks.plasmid import Plasmid, Region
 
 
 class TestFigureInit(unittest.TestCase):
