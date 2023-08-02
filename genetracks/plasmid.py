@@ -3,16 +3,20 @@
 import drawsvg as draw  # type: ignore
 from .elements import Color
 
-# Color = str
+# pylint: disable=invalid-name
+# pylint: disable=too-few-public-methods
 
 
 class Region:
-    def __init__(self, a: float, b: float, color: Color = "lightgrey"):
-        self.color = color
+    """An arc of a circular track"""
+
+    def __init__(self, a: float, b: float, color: Color | str = Color.LIGHTGREY):
+        self.color: Color = Color(color)
         self.a = a
         self.b = b
 
     def draw(self, circ: float) -> draw.Arc:
+        """Render the arc"""
         return draw.Arc(
             0,
             0,
@@ -31,16 +35,17 @@ class Plasmid:
     def __init__(
         self,
         length: float,
-        regions: list[Region] = [],
+        regions: list[Region] | None = None,
         size: float = 400,
-        color: Color = "lightgrey",
+        color: Color | str = Color.LIGHTGREY,
     ):
         self.size = size
-        self.regions = regions
+        self.regions = regions if regions is not None else []
         self.length = length
-        self.color = color
+        self.color: Color = Color(color)
 
     def show(self) -> draw.Drawing:
+        """Display the rendered figure"""
         d = draw.Drawing(1.4, 1.4, origin="center", context=draw.Context(invert_y=True))
 
         d.append(
