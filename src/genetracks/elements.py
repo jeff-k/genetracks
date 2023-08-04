@@ -1,6 +1,7 @@
 """Basic drawing elements for gene track figures
 """
 from abc import ABC, abstractmethod
+from typing import Union
 from enum import Enum
 from pathlib import Path
 import drawsvg as draw  # type: ignore
@@ -30,9 +31,11 @@ class Color(Enum):
     MEDIUMAQUAMARINE = "mediumaquamarine"
     BLACK = "black"
     BLUE = "blue"
+    FIREBRICK = "firebrick"
+    SLATEBLUE = "slateblue"
 
     @staticmethod
-    def new(color: str | Color) -> Color:
+    def new(color: Union[str, "Color"]) -> "Color":
         """Instantiate a Color from either enum value or string"""
         if isinstance(color, Color):
             return color
