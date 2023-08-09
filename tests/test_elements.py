@@ -1,7 +1,7 @@
 """Unit tests for genetracks. Run `pytest` in the root directory."""
 from genetracks.elements import Figure, Track, Alignment, Multitrack, Label
 from genetracks.plasmid import Plasmid, Region
-from genetracks.colors import SvgColor  # , HexColor
+from genetracks.colors import SvgColor, HexColor, Color
 
 # pylint: disable=invalid-name
 
@@ -164,3 +164,15 @@ def test_circular() -> None:
     # surely this is wrong?
     assert drawing.width == 1.4
     assert drawing.height == 1.4
+
+
+def test_colors() -> None:
+    c: HexColor = HexColor("#AB2201")
+    c.g = 10000
+    assert f"{c}" == "#ABFF01FF"
+    c.a = 16
+    assert f"{c}" == "#ABFF0110"
+    c.r = -100
+    assert f"{c}" == "#00FF0110"
+    c.b += 2
+    assert f"{c}" == "#00FF0310"

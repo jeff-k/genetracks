@@ -65,7 +65,7 @@ class HexColor:
         return r, g, b, a
 
     def __str__(self) -> str:
-        return f"#{self._r:02X}#{self._g:02X}#{self._b:02X}#{self._a:02X}"
+        return f"#{self._r:02X}{self._g:02X}{self._b:02X}{self._a:02X}"
 
     @property
     def r(self) -> int:
