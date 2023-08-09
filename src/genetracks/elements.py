@@ -1,10 +1,10 @@
 """Basic drawing elements for gene track figures
 """
 from abc import ABC, abstractmethod
-from typing import Union
-from enum import Enum
 from pathlib import Path
 import drawsvg as draw  # type: ignore
+
+from .colors import Color, SvgColor
 
 # pylint: disable=invalid-name
 # pylint: disable=too-many-arguments
@@ -13,40 +13,6 @@ import drawsvg as draw  # type: ignore
 Direction = str
 Interval = tuple[float, float, str]
 Tick = float
-
-
-class Color(Enum):
-    """Enum of valid SVG colours"""
-
-    LIGHTBLUE = "lightblue"
-    SALMON = "salmon"
-    LIGHTGREY = "lightgrey"
-    ORANGE = "orange"
-    TURQUOISE = "turquoise"
-    YELLOWGREEN = "yellowgreen"
-    PLUM = "plum"
-    RED = "red"
-    DARKGREY = "darkgrey"
-    STEELBLUE = "steelblue"
-    MEDIUMAQUAMARINE = "mediumaquamarine"
-    BLACK = "black"
-    BLUE = "blue"
-    FIREBRICK = "firebrick"
-    SLATEBLUE = "slateblue"
-
-    @staticmethod
-    def new(color: Union[str, "Color"]) -> "Color":
-        """Instantiate a Color from either enum value or string"""
-        if isinstance(color, Color):
-            return color
-
-        if color.upper() in Color:
-            return Color[color.upper()]
-
-        raise ValueError(f"Invalid color: {color}")
-
-    def __str__(self) -> str:
-        return self.value
 
 
 class Element(ABC):
@@ -172,7 +138,7 @@ class Track(Element):
         b: float,
         height: float = 10,
         label: str | Label | None = None,
-        color: Color = Color.LIGHTGREY,
+        color: Color = SvgColor.LIGHTGREY,
         ticks: list[Tick] | None = None,
         regions: list[Interval] | None = None,
         direction: Direction = "",
@@ -262,7 +228,7 @@ class Coverage(Element):
         b: float,
         ys: list[float],
         height: float = 10,
-        color: Color = Color.BLUE,
+        color: Color = SvgColor.BLUE,
         opacity: str = "1.0",
     ):
         super().__init__(a, b, width=b, height=height)
@@ -302,7 +268,7 @@ class Alignment(Element):
         # text: str | None = None,
         # style: str | None = None,
         gap: float = 30,
-        color: Color = Color.BLACK,
+        color: Color = SvgColor.BLACK,
     ):
         height = track1.height + track2.height + gap
         end = max(track1.y, track2.y)

@@ -1,7 +1,7 @@
 """Circularized genome figures
 """
 import drawsvg as draw  # type: ignore
-from .elements import Color
+from .colors import Color, SvgColor
 
 # pylint: disable=invalid-name
 # pylint: disable=too-few-public-methods
@@ -10,8 +10,8 @@ from .elements import Color
 class Region:
     """An arc of a circular track"""
 
-    def __init__(self, a: float, b: float, color: Color | str = Color.LIGHTGREY):
-        self.color: Color = Color(color)
+    def __init__(self, a: float, b: float, color: Color = SvgColor.LIGHTGREY):
+        self.color: Color = color
         self.a = a
         self.b = b
 
@@ -37,12 +37,12 @@ class Plasmid:
         length: float,
         regions: list[Region] | None = None,
         size: float = 400,
-        color: Color | str = Color.LIGHTGREY,
+        color: Color = SvgColor.LIGHTGREY,
     ):
         self.size = size
         self.regions = regions if regions is not None else []
         self.length = length
-        self.color: Color = Color(color)
+        self.color: Color = color
 
     def show(self) -> draw.Drawing:
         """Display the rendered figure"""
