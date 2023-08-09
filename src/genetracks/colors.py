@@ -26,9 +26,9 @@ class SvgColor(Enum):
     SLATEBLUE = "slateblue"
 
     @staticmethod
-    def new(color: str) -> SvgColor:  # pylint: disable=undefined-variable
+    def new(color: str) -> "SvgColor":  # pylint: disable=undefined-variable
         """Instantiate a Color from either enum value or string"""
-        if color.upper() in SvgColor:
+        if color.upper() in SvgColor.__members__:
             return SvgColor[color.upper()]
 
         raise ValueError(f"Invalid color: {color}")
@@ -73,7 +73,7 @@ class HexColor:
         return self._r
 
     @r.setter
-    def r(self, value: int):
+    def r(self, value: int) -> None:
         self._r = max(0, min(255, value))
 
     @property
@@ -82,7 +82,7 @@ class HexColor:
         return self._g
 
     @g.setter
-    def g(self, value: int):
+    def g(self, value: int) -> None:
         self._g = max(0, min(255, value))
 
     @property
@@ -91,7 +91,7 @@ class HexColor:
         return self._b
 
     @b.setter
-    def b(self, value: int):
+    def b(self, value: int) -> None:
         self._b = max(0, min(255, value))
 
     @property
@@ -100,7 +100,7 @@ class HexColor:
         return self._a
 
     @a.setter
-    def a(self, value: int):
+    def a(self, value: int) -> None:
         self._a = max(0, min(255, value))
 
 

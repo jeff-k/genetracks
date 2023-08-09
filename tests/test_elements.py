@@ -1,9 +1,13 @@
-import pytest
+"""Unit tests for genetracks. Run `pytest` in the root directory."""
 from genetracks.elements import Figure, Track, Alignment, Multitrack, Label
 from genetracks.plasmid import Plasmid, Region
+from genetracks.colors import SvgColor  # , HexColor
+
+# pylint: disable=invalid-name
 
 
-def test_add_track():
+def test_add_track() -> None:
+    """Test adding tracks to a figure"""
     figure: Figure = Figure()
     figure.add(
         Track(
@@ -29,14 +33,15 @@ def test_add_track():
     assert drawing.height == 45.0
 
 
-def test_multitrack():
+def test_multitrack() -> None:
+    """Test adding tracks to a multitrack"""
     figure = Figure()
     for i in range(0, 10):
         figure.add(
             Multitrack(
                 [
-                    Track(i, i + 10, direction="f", label="Track {}F".format(i)),
-                    Track(i + 20, i + 30, direction="r", label="Track {}R".format(i)),
+                    Track(i, i + 10, direction="f", label=f"Track {i}F"),
+                    Track(i + 20, i + 30, direction="r", label=f"Track {i}R"),
                 ],
                 join=True,
             )
@@ -46,7 +51,8 @@ def test_multitrack():
     assert drawing.height == 205.0
 
 
-def test_multitrack_directions():
+def test_multitrack_directions() -> None:
+    """Test drawing direction arrows"""
     figure = Figure()
     figure.add(
         Multitrack(
@@ -63,7 +69,7 @@ def test_multitrack_directions():
             250,
             direction="fr",
             label="Read-through",
-            color="salmon",
+            color=SvgColor.new("salmon"),
             regions=[(75, 225, "lightgrey")],
         )
     )
@@ -73,7 +79,8 @@ def test_multitrack_directions():
     assert drawing.height == 65.0
 
 
-def test_alignment():
+def test_alignment() -> None:
+    """Test drawing alignment between tracks"""
     f = Figure()
     f.add(
         Alignment(
@@ -87,10 +94,11 @@ def test_alignment():
     assert drawing.height == 65.0
 
 
-def test_labels():
-    f = Figure()
+def test_labels() -> None:
+    """Test drawing labels on tracks"""
 
-    def draw_hiv_genes(f):
+    def draw_hiv_genes(f: Figure) -> Figure:
+        """HIV gene regions"""
         third = [
             (2085, 5096, "pol", "orange"),
             (5559, 5850, "vpr", "turquoise"),
@@ -116,14 +124,20 @@ def test_labels():
             f.add(
                 Multitrack(
                     [
-                        Track(l, r, label=Label(0, text, offset=1), color=color)
+                        Track(
+                            l,
+                            r,
+                            label=Label(0, text, offset=1),
+                            color=SvgColor.new(color),
+                        )
                         for l, r, text, color in reading_frame
                     ]
                 ),
                 gap=0,
             )
+        return f
 
-    draw_hiv_genes(f)
+    f = draw_hiv_genes(Figure())
 
     unscaled = f.show()
     assert unscaled.width == 9719.0
@@ -134,15 +148,16 @@ def test_labels():
     assert drawing.height == 35.0
 
 
-def test_circular():
+def test_circular() -> None:
+    """Test circular genome figures"""
     p: Plasmid = Plasmid(
         360,
         regions=[
-            Region(100, 101, color="orange"),
-            Region(110, 280, color="salmon"),
-            Region(230, 275, color="firebrick"),
-            Region(320, 20, color="lightblue"),
-            Region(20, 50, color="slateblue"),
+            Region(100, 101, color=SvgColor.new("orange")),
+            Region(110, 280, color=SvgColor.new("salmon")),
+            Region(230, 275, color=SvgColor.new("firebrick")),
+            Region(320, 20, color=SvgColor.new("lightblue")),
+            Region(20, 50, color=SvgColor.new("slateblue")),
         ],
     )
     drawing = p.show()

@@ -83,7 +83,9 @@ class Figure:
         self.width: float = 0
         self.height: float = self.padding
 
-    def add(self, element: Element, gap: float = 10, padding: float | None = None):
+    def add(
+        self, element: Element, gap: float = 10, padding: float | None = None
+    ) -> None:
         """Add an element to the figure.
 
         :param element: a new Track or other element to add
@@ -120,11 +122,15 @@ class Figure:
         #        d.setRenderSize(w, h)
         return d
 
-    def to_svg(self, path: Path, w: float | None = None, h: float | None = None):
+    def to_svg(
+        self, path: Path, w: float | None = None, h: float | None = None
+    ) -> None:
         """Save figure to SVG file"""
         self.show(w=w, h=h).save_svg(path, context=draw.Context(invert_y=True))
 
-    def to_png(self, path: Path, w: float | None = None, h: float | None = None):
+    def to_png(
+        self, path: Path, w: float | None = None, h: float | None = None
+    ) -> None:
         """Safe figure to PNG file"""
         self.show(w=w, h=h).save_png(path, context=draw.Context(invert_y=True))
 
@@ -236,7 +242,7 @@ class Coverage(Element):
         self.opacity: str = opacity
         self.ys: list[float] = ys
 
-    def _draw_elements(self, group: draw.Group, xscale: float):
+    def _draw_elements(self, group: draw.Group, xscale: float) -> draw.Group:
         yscale = self.height / max(self.ys)
         a: float = self.x * xscale
         # b: float = self.y * xscale
@@ -282,7 +288,7 @@ class Alignment(Element):
         self.t2 = track2
         self.connections = connections
 
-    def _draw_elements(self, group: draw.Group, xscale: float):
+    def _draw_elements(self, group: draw.Group, xscale: float) -> draw.Group:
         group.append(self.t1.draw(xscale=xscale))
         group.append(self.t2.draw(y=self.t1.height + self.gap, xscale=xscale))
 
