@@ -4,6 +4,7 @@ from typing import Union
 from enum import Enum
 
 # pylint: disable=invalid-name
+# pylint: disable=too-many-instance-attributes
 
 
 class SvgColor(Enum):
