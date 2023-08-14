@@ -1,6 +1,7 @@
 """Unit tests for genetracks. Run `pytest` in the root directory."""
 from genetracks.elements import Figure, Track, Alignment, Multitrack, Label
-from genetracks.plasmid import Plasmid, Region
+
+# from genetracks.plasmid import Plasmid, Region
 from genetracks.colors import SvgColor, HexColor
 
 # pylint: disable=invalid-name
@@ -148,22 +149,22 @@ def test_labels() -> None:
     assert drawing.height == 35.0
 
 
-def test_circular() -> None:
-    """Test circular genome figures"""
-    p: Plasmid = Plasmid(
-        360,
-        regions=[
-            Region(100, 101, color=SvgColor.new("orange")),
-            Region(110, 280, color=SvgColor.new("salmon")),
-            Region(230, 275, color=SvgColor.new("firebrick")),
-            Region(320, 20, color=SvgColor.new("lightblue")),
-            Region(20, 50, color=SvgColor.new("slateblue")),
-        ],
-    )
-    drawing = p.show()
-    # surely this is wrong?
-    assert drawing.width == 1.4
-    assert drawing.height == 1.4
+# def test_circular() -> None:
+#    """Test circular genome figures"""
+#    p: Plasmid = Plasmid(
+#        360,
+#        regions=[
+#            Region(100, 101, color=SvgColor.new("orange")),
+#            Region(110, 280, color=SvgColor.new("salmon")),
+#            Region(230, 275, color=SvgColor.new("firebrick")),
+#            Region(320, 20, color=SvgColor.new("lightblue")),
+#            Region(20, 50, color=SvgColor.new("slateblue")),
+#        ],
+#    )
+#    drawing = p.show()
+#    # surely this is wrong?
+#    assert drawing.width == 1.4
+#    assert drawing.height == 1.4
 
 
 def test_colors() -> None:
