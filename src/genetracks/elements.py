@@ -2,6 +2,8 @@
 """
 from abc import ABC, abstractmethod
 from pathlib import Path
+import warnings
+
 import drawsvg as draw  # type: ignore
 
 from .colors import Color, SvgColor
@@ -311,6 +313,10 @@ class Multitrack(Element):
     """Pack multiple tracks onto a line"""
 
     def __init__(self, tracks: list[Track], join: bool = False):
+        warnings.warn(
+            "'Multitrack' will be replaced with nested 'Region's",
+            DeprecationWarning,
+        )
         height: float = max(track.height for track in tracks)
         width: float = max(track.width for track in tracks)
         length: float = max(track.x for track in tracks)
