@@ -1,5 +1,6 @@
 """Unit tests for genetracks. Run `pytest` in the root directory."""
-from genetracks.elements import Figure, Track, Alignment, Multitrack, Label
+import math
+from genetracks.elements import Figure, Track, Alignment, Multitrack, Label, Coverage
 
 # from genetracks.plasmid import Plasmid, Region
 from genetracks.colors import SvgColor, HexColor
@@ -95,48 +96,49 @@ def test_alignment() -> None:
     assert drawing.height == 65.0
 
 
+def draw_hiv_genes(f: Figure) -> Figure:
+    """HIV gene regions"""
+    third = [
+        (2085, 5096, "pol", "orange"),
+        (5559, 5850, "vpr", "turquoise"),
+        (5970, 6045, "rev", "yellowgreen"),
+        (6225, 8795, "env", "salmon"),
+    ]
+    second = [
+        (5831, 6045, "tat", "plum"),
+        (6062, 6310, "vpu", "red"),
+        (8379, 8653, "rev", "yellowgreen"),
+        (9086, 9719, "3' LTR", "darkgrey"),
+    ]
+
+    first = [
+        (0, 634, "5' LTR", "darkgrey"),
+        (790, 2292, "gag", "lightblue"),
+        (5041, 5619, "vif", "steelblue"),
+        (8379, 8469, "tat", "plum"),
+        (8797, 9417, "nef", "mediumaquamarine"),
+    ]
+
+    for reading_frame in [first, second, third]:
+        f.add(
+            Multitrack(
+                [
+                    Track(
+                        l,
+                        r,
+                        label=Label(0, text, offset=1),
+                        color=SvgColor.new(color),
+                    )
+                    for l, r, text, color in reading_frame
+                ]
+            ),
+            gap=0,
+        )
+    return f
+
+
 def test_labels() -> None:
     """Test drawing labels on tracks"""
-
-    def draw_hiv_genes(f: Figure) -> Figure:
-        """HIV gene regions"""
-        third = [
-            (2085, 5096, "pol", "orange"),
-            (5559, 5850, "vpr", "turquoise"),
-            (5970, 6045, "rev", "yellowgreen"),
-            (6225, 8795, "env", "salmon"),
-        ]
-        second = [
-            (5831, 6045, "tat", "plum"),
-            (6062, 6310, "vpu", "red"),
-            (8379, 8653, "rev", "yellowgreen"),
-            (9086, 9719, "3' LTR", "darkgrey"),
-        ]
-
-        first = [
-            (0, 634, "5' LTR", "darkgrey"),
-            (790, 2292, "gag", "lightblue"),
-            (5041, 5619, "vif", "steelblue"),
-            (8379, 8469, "tat", "plum"),
-            (8797, 9417, "nef", "mediumaquamarine"),
-        ]
-
-        for reading_frame in [first, second, third]:
-            f.add(
-                Multitrack(
-                    [
-                        Track(
-                            l,
-                            r,
-                            label=Label(0, text, offset=1),
-                            color=SvgColor.new(color),
-                        )
-                        for l, r, text, color in reading_frame
-                    ]
-                ),
-                gap=0,
-            )
-        return f
 
     f = draw_hiv_genes(Figure())
 
@@ -147,6 +149,33 @@ def test_labels() -> None:
     drawing = f.show(w=900)
     assert drawing.width == 900.0
     assert drawing.height == 35.0
+
+
+def test_coverage() -> None:
+    """Test drawing labels on tracks"""
+    length = 9719
+    f = draw_hiv_genes(Figure())
+    ys = [math.sin(x / 230) + 1.0 for x in range(0, length)]
+
+    f.add(Coverage(0, length, ys))
+
+    unscaled = f.show()
+    assert unscaled.width == 9719.0
+    assert unscaled.height == 55.0
+
+    drawing = f.show(w=900)
+    assert drawing.width == 900.0
+    assert drawing.height == 55.0
+
+
+def test_coverage_downsample() -> None:
+    """Test x-axis downsampling for coverage graph"""
+    length = 1000
+    ys = [1.0 for _ in range(0, length)]
+    cov = Coverage(0, length, ys)
+
+    assert len(cov.ys) == length
+    assert len(cov._downsample(100)) == 100  # pylint: disable=protected-access
 
 
 # def test_circular() -> None:

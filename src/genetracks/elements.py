@@ -244,6 +244,19 @@ class Coverage(Element):
         self.opacity: str = opacity
         self.ys: list[float] = ys
 
+    def _downsample(self, display_width: float) -> list[float]:
+        """Horizontally merge coverage values"""
+        data_width: float = float(len(self.ys))
+        group_width: int = int(data_width / display_width)
+
+        if display_width >= data_width:
+            return self.ys
+
+        return [
+            sum(self.ys[i : i + group_width]) / group_width
+            for i in range(0, len(self.ys), group_width)
+        ]
+
     def _draw_elements(self, group: draw.Group, xscale: float) -> draw.Group:
         yscale = self.height / max(self.ys)
         a: float = self.x * xscale
@@ -251,12 +264,16 @@ class Coverage(Element):
 
         i: float
         v: float
-        for i, v in enumerate(self.ys):
+
+        display_width: float = (self.y - self.x) * xscale
+        ys = self._downsample(display_width)
+
+        for i, v in enumerate(ys):
             group.append(
                 draw.Rectangle(
-                    a + (i * xscale),
+                    a + i,  # + (i * xscale),
                     0,
-                    xscale,
+                    1,  # xscale,
                     v * yscale,
                     fill=self.color,
                     fill_opacity=self.opacity,
