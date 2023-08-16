@@ -257,28 +257,53 @@ class Coverage(Element):
             for i in range(0, len(self.ys), group_width)
         ]
 
+    @staticmethod
+    def _merge_bars(ys: list[float], yscale: float) -> list[tuple[float, float]]:
+        """Merge adjacent bars with the same pixel height."""
+        pixel_heights: list[int] = [round(y * yscale) for y in ys]
+        merged_bars: list[tuple[float, float]] = []
+
+        i = 0
+        while i < len(pixel_heights):
+            j = i
+            while (
+                j < len(pixel_heights) - 1 and pixel_heights[j] == pixel_heights[j + 1]
+            ):
+                j += 1
+
+            # Average the y-values of the bars from i to j
+            avg_y = sum(ys[i : j + 1]) / (j - i + 1)
+            width = j - i + 1
+
+            merged_bars.append((float(avg_y), float(width)))
+            i = j + 1
+
+        return merged_bars
+
     def _draw_elements(self, group: draw.Group, xscale: float) -> draw.Group:
         yscale = self.height / max(self.ys)
         a: float = self.x * xscale
         # b: float = self.y * xscale
 
-        i: float
-        v: float
-
         display_width: float = (self.y - self.x) * xscale
-        ys = self._downsample(display_width)
+        ys: list[float] = self._downsample(display_width)
+        merged_ys: list[tuple[float, float]] = self._merge_bars(ys, yscale)
 
-        for i, v in enumerate(ys):
+        x_offset: float = 0.0
+
+        for y, width in merged_ys:
             group.append(
                 draw.Rectangle(
-                    a + i,  # + (i * xscale),
+                    a + x_offset,  # + (i * xscale),
                     0,
-                    1,  # xscale,
-                    v * yscale,
+                    width,  # xscale,
+                    y * yscale,
                     fill=self.color,
                     fill_opacity=self.opacity,
                 )
             )  # , stroke=self.color))
+            x_offset += width
+
         return group
 
 
