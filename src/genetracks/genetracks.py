@@ -13,12 +13,10 @@ from enum import Enum
 from abc import ABC, abstractmethod
 from collections import namedtuple
 import io
+import unittest
 
 from PIL import Image
 import cairosvg
-
-
-# Type-safe colour representations:
 
 
 class Direction(Enum):
@@ -156,8 +154,8 @@ class Text(Primitive):
         color: Color = SvgColor.BLACK,
         font_size: int = 12,
     ):
-        if not isinstance(Coord, coords):
-            raise ValueError
+        if not isinstance(coords, Coord):
+            raise TypeError
 
         super().__init__(coords, color)
         self.text = text
@@ -171,7 +169,7 @@ class Text(Primitive):
 
 
 class Lines(Primitive):
-    def __init__(self, coords: Coord, color: Color = SvgColor.BLACK):
+    def __init__(self, coords: List[Coord], color: Color = SvgColor.BLACK):
         super().__init__(coords, color)
 
     def _generate_svg(self):
@@ -200,9 +198,13 @@ class Group(Primitive):
         primitives: Union[None, List[Primitive]] = None,
     ):
         super().__init__(coords, color)
+        if primitives is None:
+            primitives = []
         self.primitives = primitives
 
-    def append(self, primitive):
+    def append(self, primitive: Primitive):
+        if not isinstance(primitive, Primitive):
+            raise TypeError
         self.primitives.append(primitive)
 
     def _generate_svg(self) -> str:
@@ -242,7 +244,7 @@ class Drawing:
         svg_header = f'<svg width="{self.width}" height="{self.height}" xmlns="http://www.w3.org/2000/svg">\n'
 
         # Adding SVG elements
-        svg_elements = "".join([group.to_svg() for group in self.group])
+        svg_elements = "".join([group.to_svg() for group in self.groups])
 
         # Closing the SVG document
         svg_footer = "</svg>"
@@ -259,8 +261,9 @@ class TrackElement(ABC):
         self.elements: List[TrackElement] = []
         self.start: int = start
         self.end: int = end
+        self.color: Color = color
 
-    def add(self, element: TrackElement):
+    def add(self, element: "TrackElement"):
         """Linear track elements can have child elements inside them"""
         self.elements.append(element)
 
@@ -285,8 +288,13 @@ class Tick(TrackElement):
         super().__init__(start, 0, color)
 
     def _draw_elements(self, group: Group) -> Group:
-        # TODO: Draw a Line primitive in the Group
-        raise NotImplementedError
+        x = self.start
+        y = 0  # assuming zero as base y-coordinate
+        line = Lines(
+            [Coord(x, y), Coord(x, y + 10)], color=self.color
+        )  # 10 is the tick height
+        group.append(line)
+        return group
 
 
 class Label(TrackElement):
@@ -332,8 +340,14 @@ class Segment(TrackElement):
         self.direction = direction
 
     def _draw_elements(self, group: Group) -> Group:
-        # TODO draw the segment
-        raise NotImplementedError
+        x1 = self.start
+        x2 = self.end
+        y = 0  # assuming zero as base y-coordinate
+        rect = Rectangle(
+            [Coord(x1, y), Coord(x2 - x1, 10)], color=self.color
+        )  # 10 is the segment height
+        group.append(rect)
+        return group
 
 
 class Coverage(TrackElement):
@@ -352,17 +366,25 @@ class Coverage(TrackElement):
         self.ys: List[float] = ys
 
     def _draw_elements(self, group: Group) -> Group:
-        # TODO: Construct Group of bars that represent coverage
-        raise NotImplementedError
+        for i, y in enumerate(self.ys):
+            x = self.start + i
+            rect = Rectangle([Coord(x, 0), Coord(1, y)], color=self.color)
+            group.append(rect)
+        return group
 
 
 class Track:
     def __init__(self):
-        # TODO figure out this class
-        raise NotImplementedError
+        self.elements: List[TrackElement] = []
 
     def add(self, element: TrackElement):
-        raise NotImplementedError
+        self.elements.append(element)
+
+    def draw(self) -> Group:
+        group = Group(Coord(0, 0))
+        for element in self.elements:
+            group.append(element.draw())
+        return group
 
 
 class Figure:
@@ -379,15 +401,77 @@ class Figure:
             track.add(element)
         self.tracks.append(track)
 
-    def __get__(self, index: int) -> Track:
+    def __get__(self, index: int) -> Track:  # TODO: check correctness
         return self.tracks[index]
 
     def draw(
         self, width: Union[None, int] = None, height: Union[None, int] = None
     ) -> Drawing:
-        # TODO: this method will recursively draw the member tracks and aggregate
-        # them into a hierarchy of Groups
-        raise NotImplementedError
+        if width is None:
+            width = 500  # TODO assume we should use logical coords
+        if height is None:
+            height = self.track_height * len(
+                self.tracks
+            )  # default height based on the number of tracks
+
+        drawing = Drawing(width, height)
+
+        for track in self.tracks:
+            drawing.append(track.draw())
+
+        return drawing
 
     def show(self, width: Union[None, int] = None, height: Union[None, int] = None):
         rasterise(self.draw(width=width, height=height).to_svg())
+
+
+class TestGeneTracks(unittest.TestCase):
+    def test_tick(self):
+        tick = Tick(10)
+        track = Track()
+        track.add(tick)
+        group = track.draw()
+        self.assertEqual(
+            group.to_svg(),
+            '<g>\n<polyline points="10,0 10,10" stroke="red" stroke-width="1.0" fill="none" />\n</g>',
+        )
+
+    def test_segment(self):
+        segment = Segment(10, 60)
+        track = Track()
+        track.add(segment)
+        group = track.draw()
+        self.assertEqual(
+            group.to_svg(),
+            '<g>\n<rect x="10" y="0" width="50" height="10" fill="lightgrey" />\n</g>',
+        )
+
+    def test_label(self):
+        label = Label(10, "TestLabel")
+        track = Track()
+        track.add(label)
+        group = track.draw()
+        self.assertEqual(
+            group.to_svg(),
+            '<g>\n<text x="10" y="0" font-size="10" fill="black">TestLabel</text>\n</g>',
+        )
+
+    def test_figure(self):
+        fig = Figure()
+        segment = Segment(10, 60)
+        tick = Tick(30)
+        fig.add(segment)
+        fig.add(tick)
+        drawing = fig.draw()
+        self.assertIn(
+            '<rect x="10" y="0" width="50" height="10" fill="lightgrey" />',
+            drawing.to_svg(),
+        )
+        self.assertIn(
+            '<polyline points="30,0 30,10" stroke="red" stroke-width="1.0" fill="none" />',
+            drawing.to_svg(),
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
