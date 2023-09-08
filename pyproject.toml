@@ -4,14 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "genetracks"
-version = "0.5.2"
+version = "0.6.0"
 description = "Diagrams for genomic data"
 authors = [
     {name = "jeff-k", email="jeff_k@fastmail.com"},
 ]
 license = { file = "LICENSE" }
 readme = "README.md"
-requires-python = ">3.10"
+requires-python = "3.8"
 
 [project.urls]
 "Homepage" = "http://github.com/jeff-k/genetracks"
@@ -21,4 +21,3 @@ requires-python = ">3.10"
 packages = [
     { include = "genetracks" },
 ]
-install_requires = ["drawSvg"]

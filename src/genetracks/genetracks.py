@@ -8,10 +8,9 @@ into a chat.
 Type annotations are compatible with Python 3.8
 """
 
-from typing import Union, Tuple, List
+from typing import Union, Tuple, List, NamedTuple
 from enum import Enum
 from abc import ABC, abstractmethod
-from collections import namedtuple
 import io
 import unittest
 
@@ -34,6 +33,7 @@ class SvgColor(Enum):
     ORANGE = "orange"
     TURQUOISE = "turquoise"
     YELLOWGREEN = "yellowgreen"
+    GREEN = "green"
     PLUM = "plum"
     RED = "red"
     DARKGREY = "darkgrey"
@@ -126,9 +126,10 @@ class HexColor:
 
 Color = Union[SvgColor, HexColor]
 
-# Drawing primitives:
 
-Coord = namedtuple("Coord", ["x", "y"])
+class Coord(NamedTuple):
+    x: float
+    y: float
 
 
 class Primitive(ABC):
@@ -165,7 +166,7 @@ class Text(Primitive):
         assert isinstance(self.coords, Coord)
         x: float = self.coords.x
         y: float = self.coords.y
-        return f'<text x="{x}" y="{y}" dy="0.5em" text-anchor="middle" font-size="{self.font_size}" fill="{self.color}">{self.text}</text>'
+        return f'<text x="{x}" y="{y}" dy="0.5em" text-anchor="middle" font-family="monospace" font-size="{self.font_size}" fill="{self.color}">{self.text}</text>'
 
 
 class Lines(Primitive):
@@ -179,13 +180,24 @@ class Lines(Primitive):
 
 class Rectangle(Primitive):
     def __init__(self, coords: List[Coord], color: Color = SvgColor.LIGHTGREY):
-        if len(coords) != 2:
-            raise ValueError
-
         super().__init__(coords, color)
 
+        if len(coords) != 2:
+            raise ValueError
+        if not isinstance(self.coords[0], Coord) or not isinstance(
+            self.coords[1], Coord
+        ):
+            raise TypeError
+
     def _generate_svg(self) -> str:
-        return f'<rect x="{self.coords[0].x}" y="{self.coords[0].y}" width="{self.coords[1].x}" height="{self.coords[1].y}" fill="{self.color}" />'
+        assert isinstance(self.coords[0], Coord)
+        assert isinstance(self.coords[1], Coord)
+        x: float = float(self.coords[0].x)
+        y: float = float(self.coords[0].y)
+        w: float = float(self.coords[1].x)
+        h: float = float(self.coords[1].y)
+
+        return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{self.color}" />'
 
 
 class Group(Primitive):
@@ -201,11 +213,17 @@ class Group(Primitive):
         if primitives is None:
             primitives = []
         self.primitives = primitives
+        self.translation: Union[None, Coord] = None
 
-    def append(self, primitive: Primitive):
+    def append(self, primitive: Primitive) -> "Group":
         if not isinstance(primitive, Primitive):
             raise TypeError
         self.primitives.append(primitive)
+        return self
+
+    def translate(self, coord: Coord) -> "Group":
+        self.translation = coord
+        return self
 
     def _generate_svg(self) -> str:
         if self.primitives is None:
@@ -214,7 +232,13 @@ class Group(Primitive):
         grouped_elements = "\n".join(
             [primitive.to_svg() for primitive in self.primitives]
         )
-        return f"<g>\n{grouped_elements}\n</g>"
+
+        open_tag = "<g>"
+        if self.translation is not None:
+            open_tag = (
+                f'<g transform="translate({self.translation.x} {self.translation.y})">'
+            )
+        return f"{open_tag}\n{grouped_elements}\n</g>"
 
 
 def rasterise(svg_document):
@@ -374,14 +398,29 @@ class Coverage(TrackElement):
 
 
 class Track:
-    def __init__(self) -> None:
-        self.elements: List[TrackElement] = []
+    def __init__(self, elements: Union[None, TrackElement, List[TrackElement]] = None):
+        self.elements: List[TrackElement]
 
-    def add(self, element: TrackElement):
+        if elements is None:
+            self.elements = []
+        elif isinstance(elements, TrackElement):
+            self.elements = [
+                elements,
+            ]
+        elif isinstance(elements, List):
+            self.elements = elements
+        else:
+            raise TypeError
+
+    def add(self, element: TrackElement) -> "Track":
         self.elements.append(element)
+        return self
 
-    def draw(self) -> Group:
+    def draw(self, translation: Union[None, Coord] = None) -> Group:
         group = Group(Coord(0, 0))
+        if translation is not None:
+            group.translate(translation)
+
         for element in self.elements:
             group.append(element.draw())
         return group
@@ -394,12 +433,16 @@ class Figure:
         self.tracks: List[Track] = []
         self.track_height = track_height
 
-    def add(self, element: Union[None, TrackElement]) -> None:
+    def add(self, element: Union[None, Track, TrackElement]) -> None:
         """Initialise a new track and add the optional elements to it"""
-        track = Track()
-        if element is not None:
+        if element is None:
+            self.tracks.append(Track())
+        elif isinstance(element, Track):
+            self.tracks.append(element)
+        elif isinstance(element, TrackElement):
+            track = Track()
             track.add(element)
-        self.tracks.append(track)
+            self.tracks.append(track)
 
     def __get__(self, index: int) -> Track:  # TODO: check correctness
         return self.tracks[index]
@@ -416,8 +459,8 @@ class Figure:
 
         drawing = Drawing(width, height)
 
-        for track in self.tracks:
-            drawing.append(track.draw())
+        for index, track in enumerate(self.tracks):
+            drawing.append(track.draw(translation=Coord(0, self.track_height * index)))
 
         return drawing
 
@@ -473,5 +516,35 @@ class TestGeneTracks(unittest.TestCase):
         )
 
 
-# if __name__ == "__main__":
-#    unittest.main()
+if __name__ == "__main__":
+    fig = Figure()
+    # Create the first track with multiple elements
+
+    track1 = Track(
+        elements=[
+            Label(3, text="Label1", color=SvgColor.GREEN),
+            Segment(1, 8, color=SvgColor.RED),
+            Tick(2, color=SvgColor.BLUE),
+        ]
+    )
+
+    # Create the second track with multiple elements
+
+    track2 = Track(
+        elements=[
+            Label(5, text="Label2", color=SvgColor.GREEN),
+            Segment(3, 7, color=SvgColor.RED),
+            Tick(4, color=SvgColor.BLUE),
+        ]
+    )
+
+    # Add the tracks to the Figure
+
+    fig.add(track1)
+    fig.add(track2)
+
+    # Generate SVG for the figure
+
+    svg_output = fig.draw().to_svg()
+#    print(svg_output)
+# unittest.main()
