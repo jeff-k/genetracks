@@ -16,7 +16,7 @@ import io
 import unittest
 
 from PIL import Image
-import cairosvg
+import cairosvg  # type: ignore
 
 
 class Direction(Enum):
@@ -152,7 +152,7 @@ class Text(Primitive):
         coords: Coord,
         text: str,
         color: Color = SvgColor.BLACK,
-        font_size: int = 12,
+        font_size: int = 10,
     ):
         if not isinstance(coords, Coord):
             raise TypeError
@@ -165,7 +165,7 @@ class Text(Primitive):
         assert isinstance(self.coords, Coord)
         x: float = self.coords.x
         y: float = self.coords.y
-        return f'<text x="{x}" y="{y}" font-size="{self.font_size}" fill="{self.color}">{self.text}</text>'
+        return f'<text x="{x}" y="{y}" dy="0.5em" text-anchor="middle" font-size="{self.font_size}" fill="{self.color}">{self.text}</text>'
 
 
 class Lines(Primitive):
@@ -374,7 +374,7 @@ class Coverage(TrackElement):
 
 
 class Track:
-    def __init__(self):
+    def __init__(self) -> None:
         self.elements: List[TrackElement] = []
 
     def add(self, element: TrackElement):
@@ -408,7 +408,7 @@ class Figure:
         self, width: Union[None, int] = None, height: Union[None, int] = None
     ) -> Drawing:
         if width is None:
-            width = 500  # TODO assume we should use logical coords
+            width = 500  # TODO if the user doesn't specify this we could intead use the maximum coords in the figure's logical values
         if height is None:
             height = self.track_height * len(
                 self.tracks
@@ -433,7 +433,7 @@ class TestGeneTracks(unittest.TestCase):
         group = track.draw()
         self.assertEqual(
             group.to_svg(),
-            '<g>\n<polyline points="10,0 10,10" stroke="red" stroke-width="1.0" fill="none" />\n</g>',
+            '<g>\n<g>\n<polyline points="10,0 10,10" stroke="red" stroke-width="1.0" fill="none" />\n</g>\n</g>',
         )
 
     def test_segment(self):
@@ -443,7 +443,7 @@ class TestGeneTracks(unittest.TestCase):
         group = track.draw()
         self.assertEqual(
             group.to_svg(),
-            '<g>\n<rect x="10" y="0" width="50" height="10" fill="lightgrey" />\n</g>',
+            '<g>\n<g>\n<rect x="10" y="0" width="50" height="10" fill="lightgrey" />\n</g>\n</g>',
         )
 
     def test_label(self):
@@ -453,7 +453,7 @@ class TestGeneTracks(unittest.TestCase):
         group = track.draw()
         self.assertEqual(
             group.to_svg(),
-            '<g>\n<text x="10" y="0" font-size="10" fill="black">TestLabel</text>\n</g>',
+            '<g>\n<g>\n<text x="10" y="0" font-size="10" fill="black">TestLabel</text>\n</g>\n</g>',
         )
 
     def test_figure(self):
@@ -473,5 +473,5 @@ class TestGeneTracks(unittest.TestCase):
         )
 
 
-if __name__ == "__main__":
-    unittest.main()
+# if __name__ == "__main__":
+#    unittest.main()
