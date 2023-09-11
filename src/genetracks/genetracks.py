@@ -1,12 +1,12 @@
 """
-This is a standalone version of genetracks for use with ChatGPT-4's
-Advanced Data Analysis feature.
-
-The entire package is contained in this file so that it can be uploaded
-into a chat.
-
-Type annotations are compatible with Python 3.8
-"""
+    This is a standalone version of genetracks for use with ChatGPT-4's
+    Advanced Data Analysis feature.
+    
+    The entire package is contained in this file so that it can be uploaded
+    into a chat.
+    
+    Type annotations are compatible with Python 3.8
+    """
 
 from typing import Union, Tuple, List, NamedTuple
 from enum import Enum
@@ -131,6 +131,19 @@ class Coord(NamedTuple):
     x: float
     y: float
 
+    def rescale_x(self, xscale: float) -> Coord:
+        return Coord(self.x * xscale, self.y)
+
+
+class ViewBox(NamedTuple):
+    x: int
+    y: int
+    width: int
+    height: int
+
+    def __str__(self) -> str:
+        return f"{self.x} {self.y} {self.width} {self.height}"
+
 
 class Primitive(ABC):
     """Baseclass for drawable image primitive"""
@@ -143,7 +156,13 @@ class Primitive(ABC):
     def _generate_svg(self) -> str:
         pass
 
-    def to_svg(self) -> str:
+    def to_svg(self, xscale: float = 1.0, yscale: float = 1.0) -> str:
+        if isinstance(self.coords, Coord):
+            self.coords = self.coords.rescale_x(xscale)
+        else:
+            for coord in self.coords:
+                coord = coord.rescale_x(xscale)
+
         return self._generate_svg()
 
 
@@ -214,6 +233,7 @@ class Group(Primitive):
             primitives = []
         self.primitives = primitives
         self.translation: Union[None, Coord] = None
+        self.xscale: float = 1.0
 
     def append(self, primitive: Primitive) -> "Group":
         if not isinstance(primitive, Primitive):
@@ -225,12 +245,18 @@ class Group(Primitive):
         self.translation = coord
         return self
 
+    def rescale_x(self, xscale: float) -> "Group":
+        self.xscale = xscale
+        assert isinstance(self.coords, Coord)
+        self.coords = self.coords.rescale_x(xscale)
+        return self
+
     def _generate_svg(self) -> str:
         if self.primitives is None:
             raise ValueError  # empty group!
 
         grouped_elements = "\n".join(
-            [primitive.to_svg() for primitive in self.primitives]
+            [primitive.to_svg(xscale=self.xscale) for primitive in self.primitives]
         )
 
         open_tag = "<g>"
@@ -242,22 +268,44 @@ class Group(Primitive):
 
 
 class Drawing:
-    def __init__(self, width: int, height: int):
+    def __init__(self, width: int, height: int, xscale: float = 1.0):
         self.width: int = width
         self.height: int = height
         self.groups: List[Group] = []  # This will hold the grouped primitives
+        self.viewbox: Union[None, ViewBox] = None
+        self.xscale: float = xscale
 
     def append(self, group: Group):
         """Appends a Group of Primitives to the SVG document."""
         self.groups.append(group)
 
-    def to_svg(self):
+    def set_viewbox(self, x: int, y: int, width: int, height: int) -> "Drawing":
+        self.viewbox = ViewBox(x, y, width, height)
+        return self
+
+    def to_svg(self) -> str:
         """Converts the entire Drawing object into a string of SVG format."""
         # Starting the SVG document
-        svg_header = f'<svg width="{self.width}" height="{self.height}" xmlns="http://www.w3.org/2000/svg">\n'
+
+        header = {
+            "width": self.width,
+            "height": self.height,
+            "preserveAspectRatio": "none",
+            "xmlns": "http://www.w3.org/2000/svg",
+        }
+
+        if self.viewbox is not None:
+            header["viewBox"] = self.viewbox
+
+        header_attrs = " ".join(
+            [f'{attr} = "{str(value)}"' for attr, value in header.items()]
+        )
+        svg_header = f"<svg {header_attrs} >\n"
 
         # Adding SVG elements
-        svg_elements = "".join([group.to_svg() for group in self.groups])
+        svg_elements = "".join(
+            [group.rescale_x(self.xscale).to_svg() for group in self.groups]
+        )
 
         # Closing the SVG document
         svg_footer = "</svg>"
@@ -276,29 +324,40 @@ class TrackElement(ABC):
         self.end: int = end
         self.color: Color = color
 
+        if self.start > self.end:
+            raise ValueError
+
     def add(self, element: "TrackElement"):
         """Linear track elements can have child elements inside them"""
         self.elements.append(element)
+
+    def _max_width(self) -> int:
+        return max(
+            [
+                self.end,
+            ]
+            + list(map(lambda e: e._max_width(), self.elements))
+        )
 
     @abstractmethod
     def _draw_elements(self, group: Group) -> Group:
         pass
 
-    def draw(self) -> Group:  # TODO what arguments does this need?
+    def draw(self, xscale: float = 1.0) -> Group:  # TODO what arguments does this need?
         # recursively draw children ontop of self
         coords = Coord(x=0, y=0)  # TODO figure out
         group = Group(coords)  # TODO figure out arguments
         self._draw_elements(group)
         for child in self.elements:
             group.append(child.draw())
-        return group
+        return group.rescale_x(xscale)
 
 
 class Tick(TrackElement):
     """A single tick mark for a linear track"""
 
     def __init__(self, start: int, color: Color = SvgColor.RED):
-        super().__init__(start, 0, color)
+        super().__init__(start, start, color)
 
     def _draw_elements(self, group: Group) -> Group:
         x = self.start
@@ -320,7 +379,7 @@ class Label(TrackElement):
         color: Color = SvgColor.BLACK,
         font_size: int = 10,
     ):
-        super().__init__(start, 0, color)
+        super().__init__(start, start, color)
         self.font_size = font_size
         self.text: str = str(text)  # TODO: sanitise input?
 
@@ -405,13 +464,18 @@ class Track:
         self.elements.append(element)
         return self
 
-    def draw(self, translation: Union[None, Coord] = None) -> Group:
+    def _max_width(self) -> int:
+        return max(map(lambda e: e._max_width(), self.elements))
+
+    def draw(
+        self, translation: Union[None, Coord] = None, xscale: float = 1.0
+    ) -> Group:
         group = Group(Coord(0, 0))
         if translation is not None:
             group.translate(translation)
 
         for element in self.elements:
-            group.append(element.draw())
+            group.append(element.draw(xscale=xscale))
         return group
 
 
@@ -436,11 +500,17 @@ class Figure:
     def __get__(self, index: int) -> Track:  # TODO: check correctness
         return self.tracks[index]
 
+    def get_width(self) -> int:
+        return max([track._max_width() for track in self.tracks])
+
     def draw(
         self, width: Union[None, int] = None, height: Union[None, int] = None
     ) -> Drawing:
         if width is None:
-            width = 500  # TODO if the user doesn't specify this we could intead use the maximum coords in the figure's logical values
+            width = self.get_width()
+
+        xscale: float = width / self.get_width()
+
         if height is None:
             height = self.track_height * len(
                 self.tracks
@@ -449,8 +519,13 @@ class Figure:
         drawing = Drawing(width, height)
 
         for index, track in enumerate(self.tracks):
-            drawing.append(track.draw(translation=Coord(0, self.track_height * index)))
+            drawing.append(
+                track.draw(
+                    translation=Coord(0, self.track_height * index), xscale=xscale
+                )
+            )
 
+        # drawing.set_viewbox(0, 0, self.get_width(), height)
         return drawing
 
     def show(self, width: Union[None, int] = None, height: Union[None, int] = None):
