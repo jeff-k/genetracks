@@ -14,8 +14,8 @@ from abc import ABC, abstractmethod
 import io
 import unittest
 
-from PIL import Image
 import cairosvg  # type: ignore
+from IPython.core.display import display_png
 
 
 class Direction(Enum):
@@ -241,17 +241,6 @@ class Group(Primitive):
         return f"{open_tag}\n{grouped_elements}\n</g>"
 
 
-def rasterise(svg_document):
-    # Rasterize SVG to PNG using cairosvg
-    png_bytes = cairosvg.svg2png(bytestring=svg_document.encode("utf-8"))
-
-    # Create a PIL Image object from the PNG bytes
-    png_image = Image.open(io.BytesIO(png_bytes))
-
-    # Display the rasterized image using PIL's show method (this opens the image using the default image viewer)
-    png_image.show()
-
-
 class Drawing:
     def __init__(self, width: int, height: int):
         self.width: int = width
@@ -465,86 +454,6 @@ class Figure:
         return drawing
 
     def show(self, width: Union[None, int] = None, height: Union[None, int] = None):
-        rasterise(self.draw(width=width, height=height).to_svg())
-
-
-class TestGeneTracks(unittest.TestCase):
-    def test_tick(self):
-        tick = Tick(10)
-        track = Track()
-        track.add(tick)
-        group = track.draw()
-        self.assertEqual(
-            group.to_svg(),
-            '<g>\n<g>\n<polyline points="10,0 10,10" stroke="red" stroke-width="1.0" fill="none" />\n</g>\n</g>',
-        )
-
-    def test_segment(self):
-        segment = Segment(10, 60)
-        track = Track()
-        track.add(segment)
-        group = track.draw()
-        self.assertEqual(
-            group.to_svg(),
-            '<g>\n<g>\n<rect x="10" y="0" width="50" height="10" fill="lightgrey" />\n</g>\n</g>',
-        )
-
-    def test_label(self):
-        label = Label(10, "TestLabel")
-        track = Track()
-        track.add(label)
-        group = track.draw()
-        self.assertEqual(
-            group.to_svg(),
-            '<g>\n<g>\n<text x="10" y="0" font-size="10" fill="black">TestLabel</text>\n</g>\n</g>',
-        )
-
-    def test_figure(self):
-        fig = Figure()
-        segment = Segment(10, 60)
-        tick = Tick(30)
-        fig.add(segment)
-        fig.add(tick)
-        drawing = fig.draw()
-        self.assertIn(
-            '<rect x="10" y="0" width="50" height="10" fill="lightgrey" />',
-            drawing.to_svg(),
-        )
-        self.assertIn(
-            '<polyline points="30,0 30,10" stroke="red" stroke-width="1.0" fill="none" />',
-            drawing.to_svg(),
-        )
-
-
-if __name__ == "__main__":
-    fig = Figure()
-    # Create the first track with multiple elements
-
-    track1 = Track(
-        elements=[
-            Label(3, text="Label1", color=SvgColor.GREEN),
-            Segment(1, 8, color=SvgColor.RED),
-            Tick(2, color=SvgColor.BLUE),
-        ]
-    )
-
-    # Create the second track with multiple elements
-
-    track2 = Track(
-        elements=[
-            Label(5, text="Label2", color=SvgColor.GREEN),
-            Segment(3, 7, color=SvgColor.RED),
-            Tick(4, color=SvgColor.BLUE),
-        ]
-    )
-
-    # Add the tracks to the Figure
-
-    fig.add(track1)
-    fig.add(track2)
-
-    # Generate SVG for the figure
-
-    svg_output = fig.draw().to_svg()
-#    print(svg_output)
-# unittest.main()
+        svg = self.draw(width=width, height=height).to_svg()
+        png = cairosvg.svg2png(bytestring=svg.encode("utf-8"))
+        display_png(png, raw=True)
