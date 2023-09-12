@@ -342,7 +342,7 @@ class TrackElement(ABC):
         self.start: int = start
         self.end: int = end
         self.color: Color = color
-        self.parent: TrackElement = None
+        self.parent: Union[None, TrackElement] = None
 
         if parent is not None:
             self.parent = parent
@@ -376,7 +376,9 @@ class TrackElement(ABC):
     def _draw_elements(self, group: Group) -> Group:
         pass
 
-    def draw(self, xscale: float = 1.0) -> Group:
+    def draw(
+        self, translation: Union[None, Coord] = None, xscale: float = 1.0
+    ) -> Group:
         # recursively draw children ontop of self
         coords = Coord(x=0, y=0)  # TODO figure out
         group = Group(coords)  # TODO figure out arguments
@@ -415,6 +417,7 @@ class Label(TrackElement):
         self.text: str = str(text)  # TODO: sanitise input?
 
     def _draw_elements(self, group: Group) -> Group:
+        assert self.parent is not None
         x_midpoint = self.parent.start + ((self.parent.end - self.parent.start) / 2)
         y_midpoint: float = self.height() / 2
         group.append(
@@ -498,7 +501,8 @@ class Track(TrackElement):
         return self.track_height
 
     def _draw_elements(self, group: Group) -> Group:
-        pass
+        # TODO: reorganise
+        return group
 
     def draw(
         self, translation: Union[None, Coord] = None, xscale: float = 1.0
@@ -537,7 +541,7 @@ class Figure:
         return max([track._max_width() for track in self.tracks])
 
     def get_height(self) -> int:
-        return sum([track.height for track in self.tracks])
+        return sum([track.height() for track in self.tracks])
 
     def draw(
         self, width: Union[None, int] = None, height: Union[None, int] = None
