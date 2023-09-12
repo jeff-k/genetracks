@@ -6,7 +6,7 @@
     into a chat.
     
     Type annotations are compatible with Python 3.8
-    """
+"""
 
 from typing import Union, Tuple, List, NamedTuple
 from enum import Enum
@@ -131,7 +131,7 @@ class Coord(NamedTuple):
     x: float
     y: float
 
-    def rescale_x(self, xscale: float) -> Coord:
+    def rescale_x(self, xscale: float) -> "Coord":
         return Coord(self.x * xscale, self.y)
 
 
@@ -160,8 +160,7 @@ class Primitive(ABC):
         if isinstance(self.coords, Coord):
             self.coords = self.coords.rescale_x(xscale)
         else:
-            for coord in self.coords:
-                coord = coord.rescale_x(xscale)
+            self.coords = [coord.rescale_x(xscale) for coord in self.coords]
 
         return self._generate_svg()
 
@@ -185,7 +184,21 @@ class Text(Primitive):
         assert isinstance(self.coords, Coord)
         x: float = self.coords.x
         y: float = self.coords.y
-        return f'<text x="{x}" y="{y}" dy="0.5em" text-anchor="middle" font-family="monospace" font-size="{self.font_size}" fill="{self.color}">{self.text}</text>'
+        attrs = {
+            "x": x,
+            "y": y,
+            # "dy": "0.5em",
+            "dominant-baseline": "central",
+            "text-anchor": "middle",
+            "font-family": "monospace",
+            "font-size": self.font_size,
+            "fill": self.color,
+        }
+
+        attr_str: str = " ".join(
+            [f'{attr} = "{str(value)}"' for attr, value in attrs.items()]
+        )
+        return f"<text {attr_str}>{str(self.text)}</text>\n"
 
 
 class Lines(Primitive):
@@ -318,18 +331,38 @@ class Drawing:
 class TrackElement(ABC):
     """An element that represents a 1-dimensional figure element"""
 
-    def __init__(self, start: int, end: int, color: Color = SvgColor.WHITE):
+    def __init__(
+        self,
+        start: int,
+        end: int,
+        color: Color = SvgColor.WHITE,
+        parent: Union[None, "TrackElement"] = None,
+    ):
         self.elements: List[TrackElement] = []
         self.start: int = start
         self.end: int = end
         self.color: Color = color
+        self.parent: TrackElement = None
+
+        if parent is not None:
+            self.parent = parent
 
         if self.start > self.end:
             raise ValueError
 
-    def add(self, element: "TrackElement"):
+    def set_parent(self, parent: "TrackElement") -> "TrackElement":
+        self.parent = parent
+        return self
+
+    def height(self) -> int:
+        if self.parent is None:
+            raise ValueError("Height attribute is not set")
+        return self.parent.height()
+
+    def add(self, element: "TrackElement") -> "TrackElement":
         """Linear track elements can have child elements inside them"""
-        self.elements.append(element)
+        self.elements.append(element.set_parent(self))
+        return self
 
     def _max_width(self) -> int:
         return max(
@@ -343,13 +376,13 @@ class TrackElement(ABC):
     def _draw_elements(self, group: Group) -> Group:
         pass
 
-    def draw(self, xscale: float = 1.0) -> Group:  # TODO what arguments does this need?
+    def draw(self, xscale: float = 1.0) -> Group:
         # recursively draw children ontop of self
         coords = Coord(x=0, y=0)  # TODO figure out
         group = Group(coords)  # TODO figure out arguments
         self._draw_elements(group)
         for child in self.elements:
-            group.append(child.draw())
+            group.append(child.draw(xscale=xscale))
         return group.rescale_x(xscale)
 
 
@@ -361,10 +394,8 @@ class Tick(TrackElement):
 
     def _draw_elements(self, group: Group) -> Group:
         x = self.start
-        y = 0  # assuming zero as base y-coordinate
-        line = Lines(
-            [Coord(x, y), Coord(x, y + 10)], color=self.color
-        )  # 10 is the tick height
+        height = self.height()
+        line = Lines([Coord(x, 0), Coord(x, height)], color=self.color)
         group.append(line)
         return group
 
@@ -384,15 +415,13 @@ class Label(TrackElement):
         self.text: str = str(text)  # TODO: sanitise input?
 
     def _draw_elements(self, group: Group) -> Group:
-        x = self.start
-        y = 0
+        x_midpoint = self.parent.start + ((self.parent.end - self.parent.start) / 2)
+        y_midpoint: float = self.height() / 2
         group.append(
             Text(
-                Coord(x=x, y=y),
+                Coord(x=x_midpoint, y=y_midpoint),
                 self.text,
                 font_size=self.font_size,
-                # font_family="monospace",
-                # text_anchor="middle",
             )
         )
         return group
@@ -416,7 +445,7 @@ class Segment(TrackElement):
         x2 = self.end
         y = 0  # assuming zero as base y-coordinate
         rect = Rectangle(
-            [Coord(x1, y), Coord(x2 - x1, 10)], color=self.color
+            [Coord(x1, y), Coord(x2 - x1, y + self.height())], color=self.color
         )  # 10 is the segment height
         group.append(rect)
         return group
@@ -445,27 +474,31 @@ class Coverage(TrackElement):
         return group
 
 
-class Track:
-    def __init__(self, elements: Union[None, TrackElement, List[TrackElement]] = None):
-        self.elements: List[TrackElement]
+class Track(TrackElement):
+    def __init__(
+        self,
+        elements: Union[None, TrackElement, List[TrackElement]] = None,
+        height: int = 12,
+    ):
+        self.track_height: int = height
+        super().__init__(0, 0, SvgColor.WHITE)
 
         if elements is None:
             self.elements = []
         elif isinstance(elements, TrackElement):
             self.elements = [
-                elements,
+                elements.set_parent(self),
             ]
         elif isinstance(elements, List):
-            self.elements = elements
+            self.elements = [element.set_parent(self) for element in elements]
         else:
             raise TypeError
 
-    def add(self, element: TrackElement) -> "Track":
-        self.elements.append(element)
-        return self
+    def height(self) -> int:
+        return self.track_height
 
-    def _max_width(self) -> int:
-        return max(map(lambda e: e._max_width(), self.elements))
+    def _draw_elements(self, group: Group) -> Group:
+        pass
 
     def draw(
         self, translation: Union[None, Coord] = None, xscale: float = 1.0
@@ -484,7 +517,7 @@ class Figure:
 
     def __init__(self, track_height: int = 10):
         self.tracks: List[Track] = []
-        self.track_height = track_height
+        self.track_height: int = track_height
 
     def add(self, element: Union[None, Track, TrackElement]) -> None:
         """Initialise a new track and add the optional elements to it"""
@@ -503,6 +536,9 @@ class Figure:
     def get_width(self) -> int:
         return max([track._max_width() for track in self.tracks])
 
+    def get_height(self) -> int:
+        return sum([track.height for track in self.tracks])
+
     def draw(
         self, width: Union[None, int] = None, height: Union[None, int] = None
     ) -> Drawing:
@@ -512,9 +548,7 @@ class Figure:
         xscale: float = width / self.get_width()
 
         if height is None:
-            height = self.track_height * len(
-                self.tracks
-            )  # default height based on the number of tracks
+            height = self.track_height * len(self.tracks)
 
         drawing = Drawing(width, height)
 
@@ -532,3 +566,43 @@ class Figure:
         svg = self.draw(width=width, height=height).to_svg()
         png = cairosvg.svg2png(bytestring=svg.encode("utf-8"))
         display_png(png, raw=True)
+
+
+def hiv_figure(track_height: int):
+    fig: Figure = Figure(track_height=track_height)
+    third = [
+        (2085, 5096, "pol", SvgColor.ORANGE),
+        (5559, 5850, "vpr", SvgColor.TURQUOISE),
+        (5970, 6045, "rev", SvgColor.YELLOWGREEN),
+        (6225, 8795, "env", SvgColor.SALMON),
+    ]
+
+    second = [
+        (5831, 6045, "tat", SvgColor.PLUM),
+        (6062, 6310, "vpu", SvgColor.RED),
+        (8379, 8653, "rev", SvgColor.YELLOWGREEN),
+        (9086, 9719, "3' LTR", SvgColor.DARKGREY),
+    ]
+
+    first = [
+        (0, 634, "5' LTR", SvgColor.DARKGREY),
+        (790, 2292, "gag", SvgColor.LIGHTBLUE),
+        (5041, 5619, "vif", SvgColor.STEELBLUE),
+        (8379, 8469, "tat", SvgColor.PLUM),
+        (8797, 9417, "nef", SvgColor.MEDIUMAQUAMARINE),
+    ]
+
+    # Initialize track
+
+    for frame in [first, second, third]:
+        track = Track()
+        # Add segments to track
+
+        for start, end, label, color in frame:
+            track.add(Segment(start, end, color=color).add(Label(0, label)))
+            # track.add(Segment(start, end, color=color))
+            # track.add(Label(start, label, color=SvgColor.BLACK))
+            # track.add(Tick(start, color=SvgColor.BLACK))
+            track.add(Tick(end - 50, color=SvgColor.RED))
+        fig.add(track)
+    return fig
