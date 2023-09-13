@@ -379,10 +379,10 @@ class TrackElement(ABC):
         self.parent = parent
         return self
 
-    def height(self) -> int:
+    def get_track(self) -> "Track":
         if self.parent is None:
-            raise ValueError("Height attribute is not set")
-        return self.parent.height()
+            raise ValueError("Track element's parent is not set")
+        return self.parent.get_track()
 
     def add(self, element: "TrackElement") -> "TrackElement":
         """Linear track elements can have child elements inside them"""
@@ -421,7 +421,7 @@ class Tick(TrackElement):
 
     def _draw_elements(self, group: Group) -> Group:
         x = self.start
-        height = self.height()
+        height = self.get_track().track_height
         line = Lines([Coord(x, 0), Coord(x, height)], color=self.color)
         group.append(line)
         return group
@@ -443,8 +443,9 @@ class Label(TrackElement):
 
     def _draw_elements(self, group: Group) -> Group:
         assert self.parent is not None
+        height = self.get_track().track_height
         x_midpoint = self.parent.start + ((self.parent.end - self.parent.start) / 2)
-        y_midpoint: float = self.height() / 2
+        y_midpoint: float = height / 2
         group.append(
             Text(
                 Coord(x=x_midpoint, y=y_midpoint),
@@ -471,10 +472,9 @@ class Segment(TrackElement):
     def _draw_elements(self, group: Group) -> Group:
         x1 = self.start
         x2 = self.end
+        height = self.get_track().track_height
         y = 0
-        rect = Rectangle(
-            [Coord(x1, y), Coord(x2 - x1, y + self.height())], color=self.color
-        )
+        rect = Rectangle([Coord(x1, y), Coord(x2 - x1, y + height)], color=self.color)
         group.append(rect)
         return group
 
@@ -507,6 +507,7 @@ class Track(TrackElement):
         height: int = 12,
     ):
         self.track_height: int = height
+        self.translation: Option[None, Coord] = None
         super().__init__(0, 0, SvgColor.WHITE)
 
         if elements is None:
@@ -520,19 +521,27 @@ class Track(TrackElement):
         else:
             raise TypeError
 
-    def height(self) -> int:
-        return self.track_height
+    def get_track(self) -> "Track":
+        return self
+
+    def get_origin(self) -> Coord:
+        if self.translation is not None:
+            return Coord(self.start + self.translation.x, self.translation.y)
+        else:
+            return self.coord
 
     def _draw_elements(self, group: Group) -> Group:
         # TODO: reorganise
         return group
 
-    def draw(
-        self, translation: Union[None, Coord] = None, xscale: float = 1.0
-    ) -> Group:
+    def translate(self, coord: Coord) -> "Track":
+        self.translation = coord
+        return self
+
+    def draw(self, xscale: float = 1.0) -> Group:
         group = Group(Coord(0, 0))
-        if translation is not None:
-            group.translate(translation)
+        if self.translation is not None:
+            group.translate(self.translation)
 
         for element in self.elements:
             group.append(element.draw(xscale=xscale))
@@ -562,11 +571,18 @@ class AlignmentElement(TrackElement):
         return group
 
     def _calculate_polygon_points(self) -> List[Coord]:
-        # Calculate the coordinates of the 4 points
-        x1, y1 = self.segment1.start, 12  # self.segment1.height() + 10
-        x2, y2 = self.segment1.end, 12  # self.segment1.height() + 20
-        x3, y3 = self.segment2.start, 28  # self.segment2.height() + 40
-        x4, y4 = self.segment2.end, 28  # self.segment2.height() + 40
+        seg1_track = self.segment1.get_track()
+        seg2_track = self.segment2.get_track()
+
+        seg1_y = seg1_track.get_origin().y
+        seg2_y = seg2_track.get_origin().y
+        seg1_height = seg1_track.track_height
+        seg2_height = seg2_track.track_height
+
+        x1, y1 = self.segment1.start, seg1_height
+        x2, y2 = self.segment1.end, seg1_height
+        x3, y3 = self.segment2.start, seg2_y
+        x4, y4 = self.segment2.end, seg2_y
         return [Coord(x1, y1), Coord(x2, y2), Coord(x4, y4), Coord(x3, y3)]
 
 
@@ -598,7 +614,7 @@ class Figure:
         return max([track._max_width() for track in self.tracks])
 
     def get_height(self) -> int:
-        return sum([track.height() for track in self.tracks])
+        return sum([track.track_height for track in self.tracks])
 
     def draw(
         self, width: Union[None, int] = None, height: Union[None, int] = None
@@ -615,9 +631,7 @@ class Figure:
 
         for index, track in enumerate(self.tracks):
             drawing.append(
-                track.draw(
-                    translation=Coord(0, self.track_height * index), xscale=xscale
-                )
+                track.translate(Coord(0, self.track_height * index)).draw(xscale=xscale)
             )
 
         for element in self.details:
@@ -668,8 +682,13 @@ def hiv_figure(track_height: int):
             track.add(seg)
             segs.append(seg)
             track.add(Tick(end - 50, color=SvgColor.RED))
+
         fig.add(track)
+        fig.add(Track())
+
     fig.add(AlignmentElement(segs[2], segs[-2], color=SvgColor.STEELBLUE))
+    fig.add(AlignmentElement(segs[4], segs[7], color=SvgColor.ORANGE))
+    fig.add(AlignmentElement(segs[7], segs[-1], color=SvgColor.TURQUOISE))
     fig.add(AlignmentElement(segs[2], segs[-1], color=SvgColor.PLUM))
     fig.add(AlignmentElement(segs[2], segs[-4]))
     return fig
