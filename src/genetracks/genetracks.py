@@ -577,13 +577,13 @@ class AlignmentElement(TrackElement):
         seg1_y = seg1_track.get_origin().y
         seg2_y = seg2_track.get_origin().y
         seg1_height = seg1_track.track_height
-        seg2_height = seg2_track.track_height
+        # seg2_height = seg2_track.track_height
 
-        x1, y1 = self.segment1.start, seg1_height
-        x2, y2 = self.segment1.end, seg1_height
-        x3, y3 = self.segment2.start, seg2_y
-        x4, y4 = self.segment2.end, seg2_y
-        return [Coord(x1, y1), Coord(x2, y2), Coord(x4, y4), Coord(x3, y3)]
+        top_left = Coord(self.segment1.start, seg1_y + seg1_height)
+        top_right = Coord(self.segment1.end, seg1_y + seg1_height)
+        bottom_left = Coord(self.segment2.start, seg2_y)
+        bottom_right = Coord(self.segment2.end, seg2_y)
+        return [top_left, top_right, bottom_right, bottom_left]
 
 
 class Figure:
