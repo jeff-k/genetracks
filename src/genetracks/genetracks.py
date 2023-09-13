@@ -8,7 +8,7 @@
     Type annotations are compatible with Python 3.8
 """
 
-from typing import Union, Tuple, List, NamedTuple
+from typing import Union, Tuple, List, NamedTuple, Dict, Any
 from enum import Enum
 from abc import ABC, abstractmethod
 import io
@@ -149,19 +149,29 @@ class Primitive(ABC):
     """Baseclass for drawable image primitive"""
 
     def __init__(self, coords: Union[Coord, List[Coord]], color: Color):
-        self.coords = coords
-        self.color = color
+        self.coords: Union[Coord, List[Coord]] = coords
+        self.color: Color = color
+        self.xscale: float = 1.0
+
+    def rescale_x(self, xscale: float) -> "Primitive":
+        self.xscale = xscale
+        if isinstance(self.coords, Coord):
+            self.coords = self.coords.rescale_x(xscale)
+        elif isinstance(self.coords, List):
+            self.coords = [coord.rescale_x(xscale) for coord in self.coords]
+        else:
+            raise Exception
+        return self
+
+    @staticmethod
+    def _make_attr_str(attrs: Dict[str, Any]) -> str:
+        return " ".join([f'{attr}="{str(value)}"' for attr, value in attrs.items()])
 
     @abstractmethod
     def _generate_svg(self) -> str:
         pass
 
-    def to_svg(self, xscale: float = 1.0, yscale: float = 1.0) -> str:
-        if isinstance(self.coords, Coord):
-            self.coords = self.coords.rescale_x(xscale)
-        else:
-            self.coords = [coord.rescale_x(xscale) for coord in self.coords]
-
+    def to_svg(self) -> str:
         return self._generate_svg()
 
 
@@ -195,10 +205,7 @@ class Text(Primitive):
             "fill": self.color,
         }
 
-        attr_str: str = " ".join(
-            [f'{attr} = "{str(value)}"' for attr, value in attrs.items()]
-        )
-        return f"<text {attr_str}>{str(self.text)}</text>\n"
+        return f"<text {Primitive._make_attr_str(attrs)}>{str(self.text)}</text>\n"
 
 
 class Lines(Primitive):
@@ -206,8 +213,13 @@ class Lines(Primitive):
         super().__init__(coords, color)
 
     def _generate_svg(self):
-        points_str = " ".join([f"{x},{y}" for (x, y) in self.coords])
-        return f'<polyline points="{points_str}" stroke="{self.color}" stroke-width="1.0" fill="none" />'
+        attrs = {
+            "points": " ".join([f"{x},{y}" for (x, y) in self.coords]),
+            "stroke": self.color,
+            "stroke-width": 1.0,
+            "fill": "none",
+        }
+        return f"<polyline {Primitive._make_attr_str(attrs)} />"
 
 
 class Rectangle(Primitive):
@@ -224,12 +236,38 @@ class Rectangle(Primitive):
     def _generate_svg(self) -> str:
         assert isinstance(self.coords[0], Coord)
         assert isinstance(self.coords[1], Coord)
-        x: float = float(self.coords[0].x)
-        y: float = float(self.coords[0].y)
-        w: float = float(self.coords[1].x)
-        h: float = float(self.coords[1].y)
 
-        return f'<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="{self.color}" />'
+        attrs = {
+            "x": self.coords[0].x,
+            "y": self.coords[0].y,
+            "width": self.coords[1].x,
+            "height": self.coords[1].y,
+            "fill": self.color,
+        }
+        return f"<rect {Primitive._make_attr_str(attrs)} />"
+
+
+class Polygon(Primitive):
+    def __init__(
+        self,
+        coords: List[Coord],
+        color: Color = SvgColor.LIGHTGREY,
+        opacity: float = 1.0,
+    ):
+        super().__init__(coords, color)
+        self.opacity: float = opacity
+
+        if len(coords) != 4:
+            raise ValueError
+
+    def _generate_svg(self) -> str:
+        attrs = {
+            "points": " ".join([f"{coord.x},{coord.y}" for coord in self.coords]),
+            "fill": self.color,
+            "opacity": self.opacity,
+        }
+
+        return f"<polygon {Primitive._make_attr_str(attrs)} />"
 
 
 class Group(Primitive):
@@ -246,7 +284,6 @@ class Group(Primitive):
             primitives = []
         self.primitives = primitives
         self.translation: Union[None, Coord] = None
-        self.xscale: float = 1.0
 
     def append(self, primitive: Primitive) -> "Group":
         if not isinstance(primitive, Primitive):
@@ -258,22 +295,16 @@ class Group(Primitive):
         self.translation = coord
         return self
 
-    def rescale_x(self, xscale: float) -> "Group":
-        self.xscale = xscale
-        assert isinstance(self.coords, Coord)
-        self.coords = self.coords.rescale_x(xscale)
-        return self
-
     def _generate_svg(self) -> str:
         if self.primitives is None:
             raise ValueError  # empty group!
-
         grouped_elements = "\n".join(
-            [primitive.to_svg(xscale=self.xscale) for primitive in self.primitives]
+            [primitive.rescale_x(self.xscale).to_svg() for primitive in self.primitives]
         )
 
         open_tag = "<g>"
         if self.translation is not None:
+            x: float = self.translation.x * self.xscale
             open_tag = (
                 f'<g transform="translate({self.translation.x} {self.translation.y})">'
             )
@@ -300,7 +331,7 @@ class Drawing:
         """Converts the entire Drawing object into a string of SVG format."""
         # Starting the SVG document
 
-        header = {
+        attrs = {
             "width": self.width,
             "height": self.height,
             "preserveAspectRatio": "none",
@@ -308,22 +339,16 @@ class Drawing:
         }
 
         if self.viewbox is not None:
-            header["viewBox"] = self.viewbox
+            attrs["viewBox"] = self.viewbox
 
-        header_attrs = " ".join(
-            [f'{attr} = "{str(value)}"' for attr, value in header.items()]
-        )
-        svg_header = f"<svg {header_attrs} >\n"
+        svg_header = f"<svg {Primitive._make_attr_str(attrs)} >\n"
 
         # Adding SVG elements
         svg_elements = "".join(
             [group.rescale_x(self.xscale).to_svg() for group in self.groups]
         )
 
-        # Closing the SVG document
         svg_footer = "</svg>"
-
-        # Combining everything
         full_svg = svg_header + svg_elements + "\n" + svg_footer
         return full_svg
 
@@ -378,7 +403,7 @@ class TrackElement(ABC):
 
     def draw(
         self, translation: Union[None, Coord] = None, xscale: float = 1.0
-    ) -> Group:
+    ) -> Primitive:
         # recursively draw children ontop of self
         coords = Coord(x=0, y=0)  # TODO figure out
         group = Group(coords)  # TODO figure out arguments
@@ -446,10 +471,10 @@ class Segment(TrackElement):
     def _draw_elements(self, group: Group) -> Group:
         x1 = self.start
         x2 = self.end
-        y = 0  # assuming zero as base y-coordinate
+        y = 0
         rect = Rectangle(
             [Coord(x1, y), Coord(x2 - x1, y + self.height())], color=self.color
-        )  # 10 is the segment height
+        )
         group.append(rect)
         return group
 
@@ -470,10 +495,8 @@ class Coverage(TrackElement):
         self.ys: List[float] = ys
 
     def _draw_elements(self, group: Group) -> Group:
-        for i, y in enumerate(self.ys):
-            x = self.start + i
-            rect = Rectangle([Coord(x, 0), Coord(1, y)], color=self.color)
-            group.append(rect)
+        raise NotImplementedError
+
         return group
 
 
@@ -516,11 +539,43 @@ class Track(TrackElement):
         return group
 
 
+class AlignmentElement(TrackElement):
+    def __init__(
+        self,
+        seg1: Segment,
+        seg2: Segment,
+        color: Color = SvgColor.SALMON,
+        opacity: float = 0.5,
+        xscale: float = 1.0,
+    ):
+        super().__init__(min(seg1.start, seg2.start), max(seg1.end, seg2.end), color)
+        self.opacity: float = opacity
+        self.segment1: Segment = seg1
+        self.segment2: Segment = seg2
+        self.xscale: float = xscale
+
+    def _draw_elements(self, group: Group) -> Group:
+        points: List[Coord] = self._calculate_polygon_points()
+        polygon = Polygon(points, color=self.color, opacity=0.3)
+        polygon.rescale_x(self.xscale)
+        group.append(polygon.rescale_x(self.xscale))
+        return group
+
+    def _calculate_polygon_points(self) -> List[Coord]:
+        # Calculate the coordinates of the 4 points
+        x1, y1 = self.segment1.start, 12  # self.segment1.height() + 10
+        x2, y2 = self.segment1.end, 12  # self.segment1.height() + 20
+        x3, y3 = self.segment2.start, 28  # self.segment2.height() + 40
+        x4, y4 = self.segment2.end, 28  # self.segment2.height() + 40
+        return [Coord(x1, y1), Coord(x2, y2), Coord(x4, y4), Coord(x3, y3)]
+
+
 class Figure:
     """A Figure has an ordered list of Tracks"""
 
     def __init__(self, track_height: int = 10):
         self.tracks: List[Track] = []
+        self.details: List[TrackElement] = []
         self.track_height: int = track_height
 
     def add(self, element: Union[None, Track, TrackElement]) -> None:
@@ -529,6 +584,8 @@ class Figure:
             self.tracks.append(Track())
         elif isinstance(element, Track):
             self.tracks.append(element)
+        elif isinstance(element, AlignmentElement):
+            self.details.append(element)
         elif isinstance(element, TrackElement):
             track = Track()
             track.add(element)
@@ -554,7 +611,7 @@ class Figure:
         if height is None:
             height = self.track_height * len(self.tracks)
 
-        drawing = Drawing(width, height)
+        drawing = Drawing(width, height, xscale=xscale)
 
         for index, track in enumerate(self.tracks):
             drawing.append(
@@ -562,6 +619,9 @@ class Figure:
                     translation=Coord(0, self.track_height * index), xscale=xscale
                 )
             )
+
+        for element in self.details:
+            drawing.append(element.draw(xscale=xscale))
 
         # drawing.set_viewbox(0, 0, self.get_width(), height)
         return drawing
@@ -598,15 +658,18 @@ def hiv_figure(track_height: int):
 
     # Initialize track
 
+    segs = []
     for frame in [first, second, third]:
         track = Track()
         # Add segments to track
 
         for start, end, label, color in frame:
-            track.add(Segment(start, end, color=color).add(Label(0, label)))
-            # track.add(Segment(start, end, color=color))
-            # track.add(Label(start, label, color=SvgColor.BLACK))
-            # track.add(Tick(start, color=SvgColor.BLACK))
+            seg = Segment(start, end, color=color).add(Label(0, label))
+            track.add(seg)
+            segs.append(seg)
             track.add(Tick(end - 50, color=SvgColor.RED))
         fig.add(track)
+    fig.add(AlignmentElement(segs[2], segs[-2], color=SvgColor.STEELBLUE))
+    fig.add(AlignmentElement(segs[2], segs[-1], color=SvgColor.PLUM))
+    fig.add(AlignmentElement(segs[2], segs[-4]))
     return fig
