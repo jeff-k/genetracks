@@ -257,9 +257,6 @@ class Polygon(Primitive):
         super().__init__(coords, color)
         self.opacity: float = opacity
 
-        if len(coords) != 4:
-            raise ValueError
-
     def _generate_svg(self) -> str:
         attrs = {
             "points": " ".join([f"{coord.x},{coord.y}" for coord in self.coords]),
@@ -474,8 +471,33 @@ class Segment(TrackElement):
         x2 = self.end
         height = self.get_track().track_height
         y = 0
-        rect = Rectangle([Coord(x1, y), Coord(x2 - x1, y + height)], color=self.color)
-        group.append(rect)
+
+        if self.direction is not None:
+            arrowhead_size = 5
+            if self.direction == Direction.F:
+                points = [
+                    Coord(x1, y),
+                    Coord(x2 - arrowhead_size, y),
+                    Coord(x2, y + height / 2),
+                    Coord(x2 - arrowhead_size, y + height),
+                    Coord(x1, y + height),
+                ]
+            elif self.direction == Direction.R:
+                points = [
+                    Coord(x1 + arrowhead_size, y),
+                    Coord(x1, y + height / 2),
+                    Coord(x1 + arrowhead_size, y + height),
+                    Coord(x2, y + height),
+                    Coord(x2, y),
+                ]
+            poly = Polygon(points, color=self.color)
+            group.append(poly)
+        else:
+            rect = Rectangle(
+                [Coord(x1, y), Coord(x2 - x1, y + height)], color=self.color
+            )
+            group.append(rect)
+
         return group
 
 
@@ -663,6 +685,7 @@ def hiv_figure(track_height: int):
     ]
 
     first = [
+        (700, 9000, "", SvgColor.LIGHTGREY),
         (0, 634, "5' LTR", SvgColor.DARKGREY),
         (790, 2292, "gag", SvgColor.LIGHTBLUE),
         (5041, 5619, "vif", SvgColor.STEELBLUE),
@@ -678,13 +701,15 @@ def hiv_figure(track_height: int):
         # Add segments to track
 
         for start, end, label, color in frame:
-            seg = Segment(start, end, color=color).add(Label(0, label))
+            seg = Segment(start, end, color=color, direction=Direction.R).add(
+                Label(0, label)
+            )
             track.add(seg)
             segs.append(seg)
             track.add(Tick(end - 50, color=SvgColor.RED))
 
         fig.add(track)
-        fig.add(Track())
+        # fig.add(Track())
 
     fig.add(AlignmentElement(segs[2], segs[-2], color=SvgColor.STEELBLUE))
     fig.add(AlignmentElement(segs[4], segs[7], color=SvgColor.ORANGE))
