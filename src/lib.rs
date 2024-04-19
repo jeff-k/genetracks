@@ -1,162 +1,244 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Result;
+use leptos::*;
+//use serde::{Deserialize, Serialize};
+//use serde_json::Result;
 use std::fmt;
-use std::rc::Rc;
-use yew::{html, Html};
+//use std::rc::Rc;
 
-#[derive(Serialize, Deserialize)]
-pub struct Figure {
-    width: usize,
-    height: usize,
-    tracks: Vec<Track>,
+pub struct Dims {
+    pub x: f64,
+    pub y: f64,
+    pub width: f64,
+    pub height: f64,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Track {
-    pub height: usize,
-    pub elems: Vec<Elem>,
+#[component]
+fn Text(pos: Dims, text: String) -> impl IntoView {
+    view! {
+        <text
+            x=pos.x.to_string()
+            y=pos.y.to_string()
+            font-size="10"
+            font-family="monospace"
+            text-anchor="middle"
+            dominant-baseline="central"
+        >
+            {text.to_string()}
+        </text>
+    }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct Elem {
-    #[serde(default)]
-    pub style: Style,
-    pub label: Rc<str>,
-    pub start: usize,
-    pub length: usize,
-    pub colour: Rc<str>,
+#[component]
+fn Rect(pos: Dims, text: String) -> impl IntoView {
+    view! {
+        <text
+            x=pos.x.to_string()
+            y=pos.y.to_string()
+            font-size="10"
+            font-family="monospace"
+            text-anchor="middle"
+            dominant-baseline="central"
+        >
+            {text.to_string()}
+        </text>
+    }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub enum Style {
-    Rect,
-    Line,
-    Bar,
+pub enum ElemStyle {
     Left,
     Right,
+    Bar,
+    Line,
+    Rect,
+    Tick,
 }
 
-impl Default for Style {
-    fn default() -> Style {
-        Style::Rect
-    }
+#[derive(Debug)]
+pub enum Colour {
+    Black,
+    White,
+    Lightgrey,
+    Lightblue,
+    Salmon,
+    Orange,
+    Turquoise,
+    Yellowgreen,
+    Plum,
+    Red,
+    Darkgrey,
+    Mediumaquamarine,
+    Blue,
+    Firebrick,
+    Slateblue,
 }
 
-impl Elem {
-    pub fn draw(&self, scale: f32, height: f32) -> Html {
-        let end: f32 = self.length as f32 / scale;
-        let midpoint = (self.length as f32 / 2.0) / scale;
-        let start: f32 = (self.start as f32) / scale;
-        match self.style {
-            Style::Left => html! {
-
-                <g transform={format!("translate({} 0)", start)}>
-                <path d={format!("M0,0 L{},0 L{},{} L0,{} L{},{} L0,0", end, end, height, height, -10.0, height / 2.0)} fill={self.colour.to_string()} stroke={self.colour.to_string()} stroke-opacity="0.0" />
-                <text x={format!("{}", midpoint)} y={ format!("{}", height / 2.0) } font-size="12" font-family="monospace" text-anchor="middle" dominant-baseline="middle">{ self.label.to_string() }</text>
-                </g>
-
-
-            },
-
-            Style::Right => html! {
-
-                <g transform={format!("translate({} 0)", start)}>
-                <path d={format!("M0,0 L{},0 L{},{} L{},{} L0,{} L0,0", end, end + 10.0, height / 2.0, end, height, height)} fill={self.colour.to_string()} stroke={self.colour.to_string()} stroke-opacity="0.0" />
-                <text x={format!("{}", midpoint)} y={format!("{}", height / 2.0)} font-size="12" font-family="monospace" text-anchor="middle" dominant-baseline="middle">{ self.label.to_string() }</text>
-                </g>
-
-
-            },
-            Style::Line => html! {
-                <g transform={format!("translate({} 0)", start)}>
-                <path d={format!("M0.0,{} L{},{}", height / 2.0, end, height / 2.0)} stroke={self.colour.to_string()} />
-                </g>
-            },
-            Style::Bar => html! {
-                <g transform={format!("translate({} 0)", start)}>
-                <path d={format!("M0.0,0.0 L0.0,{}", height)} stroke={self.colour.to_string()} />
-                <path d={format!("M0.0,{} L{},{}", height / 2.0, end, height / 2.0)} stroke={self.colour.to_string()} />
-                <path d={format!("M{},0.0 L{},{}", end, end, height)} stroke={self.colour.to_string()} />
-
-                </g>
-            },
-            _ => html! {
-
-                <g transform={format!("translate({} 0)", start)}>
-                        <rect x="0" y="0" width={format!("{}", end)} height={format!("{}", height)} fill={self.colour.to_string()} stroke={self.colour.to_string()} stroke-opacity="0.0"/>
-
-                <text x={format!("{}", midpoint)} y={format!("{}", height / 2.0)} font-size="12" font-family="monospace" text-anchor="middle" dominant-baseline="middle">{ self.label.to_string() }</text>
-                </g>
-            },
-        }
-    }
-}
-
-impl Track {
-    fn draw(&self, row: usize, scale: f32) -> Html {
-        html! { <g transform={format!("translate(0 {})", row as f32)}>
-            { self.elems.iter().map(|e| e.draw(scale, self.height as f32)).collect::<Html>() }
-        </g> }
-    }
-}
-
-impl Figure {
-    pub fn new(tracks: Vec<Track>) -> Self {
-        Self {
-            width: 1000,
-            height: 200,
-            tracks,
-        }
-    }
-
-    pub fn push_interval(&mut self, s: usize, e: usize) {
-        self.tracks.push(Track {
-            height: 16,
-            elems: vec![Elem {
-                style: Style::Bar,
-                label: Rc::from(""),
-                start: s,
-                length: e - s,
-                colour: Rc::from("grey"),
-            }],
-        });
-    }
-    pub fn to_svg(&self) -> Html {
-        let mut width: f32 = 0.0;
-        let mut height: f32 = 0.0;
-        let padding = 3;
-
-        for track in &self.tracks {
-            height += track.height as f32 + padding as f32;
-            for elem in &track.elems {
-                let end = elem.start as f32 + elem.length as f32;
-                if end >= width {
-                    width = end;
-                }
-            }
-        }
-        let scale: f32 = width / self.width as f32;
-        let mut row_y: usize = 0;
-        html! {
-        <svg width={ format!("{}", self.width) } height={format!("{}", height)} viewBox={format!("0.0 0.0 {} {}", self.width, height)} preserveAspectRatio={ "none" }>
-        <defs>
-        </defs>
-        { self.tracks.iter().map(|track| {
-            let svg_node = track.draw(row_y, scale);
-            row_y += track.height + padding;
-            svg_node
-            }).collect::<Html>() }
-        </svg>
-                }
-    }
-
-    pub fn from_string(s: String) -> Result<Self> {
-        serde_json::from_str(&s)
-    }
-}
-
-impl fmt::Display for Figure {
+impl std::fmt::Display for Colour {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", serde_json::to_string_pretty(&self).unwrap())
+        write!(f, "{}", format!("{:?}", self).to_lowercase())
     }
+}
+
+pub struct ElementData {
+    pub style: ElemStyle,
+    pub label: Option<String>,
+    pub start: f32,
+    pub length: f32,
+    pub scale: f32,
+    pub colour: Colour,
+}
+
+pub struct TrackData {
+    pub height: f32,
+    pub elements: Vec<ElementData>,
+}
+
+#[component]
+pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> impl IntoView {
+    let style = data.style;
+    let label = data.label;
+    let start = data.start / data.scale;
+    let colour = data.colour;
+
+    let end: f32 = data.length / data.scale;
+    let midpoint = (data.length / 2.0) / data.scale;
+    let start = (start) / data.scale;
+
+    let text = label.map(|label| {
+        view! {
+            <text
+                x=format!("{}", midpoint)
+                y=format!("{}", height / 2.0)
+                font-size="12"
+                font-family="monospace"
+                text-anchor="middle"
+                dominant-baseline="middle"
+            >
+                {label.to_string()}
+            </text>
+        }
+    });
+
+    let elem = match style {
+        ElemStyle::Left => view! {
+            <path
+                d=format!(
+                    "M0,0 L{},0 L{},{} L0,{} L{},{} L0,0",
+                    end,
+                    end,
+                    height,
+                    height,
+                    -10.0,
+                    height / 2.0,
+                )
+
+                fill=colour.to_string()
+                stroke=colour.to_string()
+                stroke-opacity="0.0"
+            ></path>
+        }
+        .into_view(),
+
+        ElemStyle::Right => view! {
+            <path
+                d=format!(
+                    "M0,0 L{},0 L{},{} L{},{} L0,{} L0,0",
+                    end,
+                    end + 10.0,
+                    height / 2.0,
+                    end,
+                    height,
+                    height,
+                )
+
+                fill=colour.to_string()
+                stroke=colour.to_string()
+                stroke-opacity="0.0"
+            ></path>
+        }
+        .into_view(),
+        ElemStyle::Line => view! {
+            <path
+                d=format!("M0.0,{} L{},{}", height / 2.0, end, height / 2.0)
+                stroke=colour.to_string()
+            ></path>
+        }
+        .into_view(),
+        ElemStyle::Bar => view! {
+            <path d=format!("M0.0,0.0 L0.0,{}", height) stroke=colour.to_string()></path>
+            <path
+                d=format!("M0.0,{} L{},{}", height / 2.0, end, height / 2.0)
+                stroke=colour.to_string()
+            ></path>
+            <path d=format!("M{},0.0 L{},{}", end, end, height) stroke=colour.to_string()></path>
+        }
+        .into_view(),
+        ElemStyle::Rect => view! {
+            <rect
+                x="0"
+                y="0"
+                width=format!("{}", end)
+                height=format!("{}", height)
+                fill=colour.to_string()
+                stroke=colour.to_string()
+                stroke-opacity="0.0"
+            ></rect>
+        }
+        .into_view(),
+        ElemStyle::Tick => view! {
+            <line
+                x1="0"
+                y1="0"
+                x2="0"
+                y2=format!("{}", height)
+                stroke=colour.to_string()
+                stroke-opacity="0.0"
+            ></line>
+        }
+        .into_view(),
+    };
+
+    view! { <g transform=format!("translate({} 0)", start)>{elem} {text}</g> }
+}
+
+#[component]
+pub fn Track(
+    #[prop(into)] y: f32,
+    #[prop(into)] elements: Vec<ElementData>,
+    #[prop(default = 20.0)] height: f32,
+) -> impl IntoView {
+    view! {
+        <g transform=format!(
+            "translate(0 {})",
+            y,
+        )>{elements.into_iter().map(|e| view! { <Element height data=e/> }).collect_view()}</g>
+    }
+}
+
+#[component]
+pub fn Figure(#[prop(into)] dims: Dims, #[prop(into)] tracks: Vec<TrackData>) -> impl IntoView {
+    let v = view! {
+        <svg
+            width=dims.width
+            height=dims.height
+            viewBox=format!("0.0 0.0 {} {}", dims.width, dims.height)
+            preserveAspectRatio="none"
+        >
+
+            {
+                let mut y: f32 = 0.0;
+                tracks
+                    .into_iter()
+                    .map(|t| {
+                        let v = view! { <Track y elements=t.elements/> };
+                        y += &t.height;
+                        logging::log!("tracking track at {:?}", & y);
+                        v
+                    })
+                    .collect_view()
+            }
+
+        </svg>
+    };
+
+    logging::log!("{:?}", &v.clone().into_view());
+    v
 }
