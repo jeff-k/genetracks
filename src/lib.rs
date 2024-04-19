@@ -1,18 +1,14 @@
 use leptos::*;
 //use serde::{Deserialize, Serialize};
 //use serde_json::Result;
-use std::fmt;
+//use std::fmt;
 //use std::rc::Rc;
 
-pub struct Dims {
-    pub x: f64,
-    pub y: f64,
-    pub width: f64,
-    pub height: f64,
-}
+pub mod elements;
+use elements::{Dims, ElemStyle, ElementData, TrackData};
 
 #[component]
-fn Text(pos: Dims, text: String) -> impl IntoView {
+fn Text(pos: elements::Dims, text: String) -> impl IntoView {
     view! {
         <text
             x=pos.x.to_string()
@@ -43,63 +39,16 @@ fn Rect(pos: Dims, text: String) -> impl IntoView {
     }
 }
 
-pub enum ElemStyle {
-    Left,
-    Right,
-    Bar,
-    Line,
-    Rect,
-    Tick,
-}
-
-#[derive(Debug)]
-pub enum Colour {
-    Black,
-    White,
-    Lightgrey,
-    Lightblue,
-    Salmon,
-    Orange,
-    Turquoise,
-    Yellowgreen,
-    Plum,
-    Red,
-    Darkgrey,
-    Mediumaquamarine,
-    Blue,
-    Firebrick,
-    Slateblue,
-}
-
-impl std::fmt::Display for Colour {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", format!("{:?}", self).to_lowercase())
-    }
-}
-
-pub struct ElementData {
-    pub style: ElemStyle,
-    pub label: Option<String>,
-    pub start: f32,
-    pub length: f32,
-    pub scale: f32,
-    pub colour: Colour,
-}
-
-pub struct TrackData {
-    pub height: f32,
-    pub elements: Vec<ElementData>,
-}
-
 #[component]
 pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> impl IntoView {
     let style = data.style;
     let label = data.label;
     let start = data.start / data.scale;
     let colour = data.colour;
+    let length = data.end - data.start;
 
-    let end: f32 = data.length / data.scale;
-    let midpoint = (data.length / 2.0) / data.scale;
+    let end: f32 = length / data.scale;
+    let midpoint = (length / 2.0) / data.scale;
     let start = (start) / data.scale;
 
     let text = label.map(|label| {
@@ -183,17 +132,10 @@ pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> im
             ></rect>
         }
         .into_view(),
-        ElemStyle::Tick => view! {
-            <line
-                x1="0"
-                y1="0"
-                x2="0"
-                y2=format!("{}", height)
-                stroke=colour.to_string()
-                stroke-opacity="0.0"
-            ></line>
+        ElemStyle::Tick => {
+            view! { <path d=format!("M0.0,0.0 L0.0,{}", height) stroke=colour.to_string()></path> }
+                .into_view()
         }
-        .into_view(),
     };
 
     view! { <g transform=format!("translate({} 0)", start)>{elem} {text}</g> }
