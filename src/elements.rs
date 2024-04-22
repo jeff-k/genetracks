@@ -40,6 +40,7 @@ pub enum Colour {
     Blue,
     Firebrick,
     Slateblue,
+    Steelblue,
 }
 
 #[derive(Serialize, Clone, Debug, Deserialize)]
