@@ -43,10 +43,12 @@ pub enum Colour {
     Steelblue,
 }
 
+/*
 #[derive(Serialize, Clone, Debug, Deserialize)]
 pub struct FigureData {
     tracks: Vec<TrackData>,
 }
+*/
 
 impl std::fmt::Display for Colour {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

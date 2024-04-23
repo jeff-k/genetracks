@@ -1,58 +1,18 @@
-use leptos::*;
-//use serde::{Deserialize, Serialize};
-//use serde_json::Result;
-//use std::fmt;
-//use std::rc::Rc;
-
 pub mod elements;
-use elements::{Dims, ElemStyle, ElementData, TrackData};
 
-#[component]
-fn Text(pos: elements::Dims, text: String) -> impl IntoView {
-    view! {
-        <text
-            x=pos.x.to_string()
-            y=pos.y.to_string()
-            font-size="10"
-            font-family="monospace"
-            text-anchor="middle"
-            dominant-baseline="central"
-        >
-            {text.to_string()}
-        </text>
-    }
-}
-
-#[component]
-fn Rect(pos: Dims, text: String) -> impl IntoView {
-    view! {
-        <text
-            x=pos.x.to_string()
-            y=pos.y.to_string()
-            font-size="10"
-            font-family="monospace"
-            text-anchor="middle"
-            dominant-baseline="central"
-        >
-            {text.to_string()}
-        </text>
-    }
-}
+use elements::{ElemStyle, ElementData, TrackData};
+use leptos::*;
 
 #[component]
 pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> impl IntoView {
     let scale = use_context::<ReadSignal<f32>>().unwrap();
 
-    let style = data.style;
-    let label = data.label;
-    let colour = data.colour;
-
+    // these are repeated, but probably shouldn't be memoised
     let start = move || data.start / scale();
+    let end = move || (data.end - data.start) / scale();
+    let midpoint = move || ((data.end - data.start) / 2.0) / scale();
 
-    let end = move || (data.end - start()) / scale();
-    let midpoint = move || ((data.end - start()) / 2.0) / scale();
-
-    let text = label.map(|label| {
+    let text = data.label.map(|label| {
         view! {
             <text
                 x=move || format!("{}", midpoint())
@@ -60,14 +20,14 @@ pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> im
                 font-size="12"
                 font-family="monospace"
                 text-anchor="middle"
-                dominant-baseline="middle"
+                dominant-baseline="central"
             >
                 {label.to_string()}
             </text>
         }
     });
 
-    let elem = match style {
+    let elem = match data.style {
         ElemStyle::Left => view! {
             <path
                 d=move || {
@@ -82,8 +42,8 @@ pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> im
                     )
                 }
 
-                fill=colour.to_string()
-                stroke=colour.to_string()
+                fill=data.colour.to_string()
+                stroke=data.colour.to_string()
                 stroke-opacity="0.0"
             ></path>
         }
@@ -103,8 +63,8 @@ pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> im
                     )
                 }
 
-                fill=colour.to_string()
-                stroke=colour.to_string()
+                fill=data.colour.to_string()
+                stroke=data.colour.to_string()
                 stroke-opacity="0.0"
             ></path>
         }
@@ -112,19 +72,19 @@ pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> im
         ElemStyle::Line => view! {
             <path
                 d=move || format!("M0.0,{} L{},{}", height / 2.0, end(), height / 2.0)
-                stroke=colour.to_string()
+                stroke=data.colour.to_string()
             ></path>
         }
         .into_view(),
         ElemStyle::Bar => view! {
-            <path d=format!("M0.0,0.0 L0.0,{}", height) stroke=colour.to_string()></path>
+            <path d=format!("M0.0,0.0 L0.0,{}", height) stroke=data.colour.to_string()></path>
             <path
                 d=move || format!("M0.0,{} L{},{}", height / 2.0, end(), height / 2.0)
-                stroke=colour.to_string()
+                stroke=data.colour.to_string()
             ></path>
             <path
                 d=move || format!("M{},0.0 L{},{}", end(), end(), height)
-                stroke=colour.to_string()
+                stroke=data.colour.to_string()
             ></path>
         }
         .into_view(),
@@ -134,26 +94,26 @@ pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> im
                 y="0"
                 width=move || format!("{}", end())
                 height=format!("{}", height)
-                fill=colour.to_string()
-                stroke=colour.to_string()
+                fill=data.colour.to_string()
+                stroke=data.colour.to_string()
                 stroke-opacity="0.0"
             ></rect>
         }
         .into_view(),
         ElemStyle::Tick => {
-            view! { <path d=format!("M0.0,0.0 L0.0,{}", height) stroke=colour.to_string()></path> }
+            view! { <path d=format!("M0.0,0.0 L0.0,{}", height) stroke=data.colour.to_string()></path> }
                 .into_view()
         }
     };
 
-    view! { <g transform=move || format!("translate({} 0)", start())>{elem} {text}</g> }
+    view! { <g transform=move || { format!("translate({} 0)", start()) }>{elem} {text}</g> }
 }
 
 #[component]
 pub fn Track(
     #[prop(into)] y: f32,
     #[prop(into)] elements: Vec<ElementData>,
-    #[prop(default = 20.0)] height: f32,
+    #[prop(default = 18.0)] height: f32,
 ) -> impl IntoView {
     view! {
         <g transform=format!(
@@ -163,54 +123,107 @@ pub fn Track(
     }
 }
 
+pub fn from_json(json: &str) -> Vec<TrackData> {
+    match serde_json::from_str::<Vec<TrackData>>(json) {
+        Ok(ts) => ts,
+        _ => vec![],
+    }
+}
+
 #[component]
 pub fn Figure(
     #[prop(default = 0.0)] x: f32,
     #[prop(default = 0.0)] y: f32,
     #[prop(into)] width: ReadSignal<f32>,
-    #[prop(into)] tracks: ReadSignal<Vec<TrackData>>,
+    #[prop(into)] tracks: ReadSignal<Vec<(usize, TrackData)>>,
 ) -> impl IntoView {
-    let height = move || 300.0;
     let (scale, set_scale) = create_signal(1.0);
+    set_scale(1.0);
     provide_context(scale);
+    set_scale(1.0);
+    let (height, set_height) = create_signal(0.0);
 
     create_effect(move |_| {
         let mut max_end: f32 = 0.0;
-        for track in tracks() {
+        let mut h: f32 = 0.0;
+        for (_, track) in tracks() {
             for elem in track.elements {
                 max_end = f32::max(max_end, elem.end);
             }
+            h += track.height;
         }
-        set_scale(max_end / width());
+
+        set_height(h);
+        if max_end > 0.0 {
+            set_scale(max_end / width());
+        }
     });
 
-    // create memo for when tracks are updated, use it to recalculate width and height
-
-    let v = view! {
+    view! {
         <svg
             width=width
             height=height
             viewBox=move || { format!("{} {} {} {}", x, y, width(), height()) }
             preserveAspectRatio="none"
         >
-
-            move ||
-            {
-                let mut y: f32 = 0.0;
-                tracks()
-                    .into_iter()
-                    .map(|t| {
-                        let v = view! { <Track y elements=t.elements/> };
-                        y += &t.height;
-                        logging::log!("tracking track at {:?}", & y);
-                        v
-                    })
-                    .collect_view()
-            }
+            <For
+                each=tracks
+                key=move |(index, _)| { *index }
+                children=move |(index, track)| {
+                    let t = &track.clone();
+                    view! { <Track y=index as f32 * t.height elements=t.elements.clone()/> }
+                }
+            />
 
         </svg>
+    }
+}
+
+/*
+fn main() {
+    leptos::mount_to_body(App)
+}
+
+fn covid() -> Vec<TrackData> {
+    let j = r#"[{"elements": [{"start": 13468, "end": 21555, "label": "ORF1b", "colour": "Orange"}, {"start": 25393, "end": 26220, "label": "ORF3A", "colour": "Turquoise"}, {"start": 26245, "end": 26472, "label": "E", "colour": "Yellowgreen"}, {"start": 27191, "end": 27387, "label": "ORF6", "colour": "Salmon"}, {"start": 27394, "end": 27759, "label": "ORF7a", "colour": "Plum"}, {"start": 29558, "end": 29674, "label": "ORF10", "colour": "Red"}]}, {"elements": [{"start": 266, "end": 13468, "label": "ORF1a", "colour": "Lightblue"}, {"start": 21563, "end": 25384, "label": "S", "colour": "Steelblue"}, {"start": 28274, "end": 29533, "label": "N", "colour": "Mediumaquamarine"}]}, {"elements": [{"start": 26523, "end": 27191, "label": "M", "colour": "Turquoise"}, {"start": 27894, "end": 28259, "label": "ORF8", "colour": "Yellowgreen"}]}]"#;
+    from_json(&j)
+}
+
+#[component]
+fn App() -> impl IntoView {
+    let (width, set_width) = create_signal::<f32>(800.0);
+    let (tracks, set_tracks) = create_signal::<Vec<(usize, TrackData)>>(vec![]);
+
+    let mut index = 0;
+    let add_track = move |_| {
+        for track in covid() {
+            set_tracks.update(|t| t.push((index, track.clone())));
+            index += 1;
+        }
     };
 
-    logging::log!("{:?}", &v.clone().into_view());
-    v
+    view! {
+        <div class="app-container">
+            <Figure width=width tracks=tracks></Figure>
+            <div></div>
+
+            <button on:click=move |_| {
+                set_width.update(|w| *w -= 20.0);
+            }>
+
+                "<<"
+            </button>
+
+                                    <button on:click=move |_| {
+                set_width.update(|w| *w += 20.0);
+            }>
+
+                ">>"
+            </button>
+            <button on:click=add_track>
+            "add"
+            </button>
+        </div>
+    }
 }
+*/
