@@ -1,6 +1,6 @@
 pub mod elements;
 
-use elements::{ElemStyle, ElementData, TrackData};
+pub use elements::{ElemStyle, ElementData, TrackData};
 use leptos::*;
 
 #[component]
@@ -75,6 +75,8 @@ pub fn Element(#[prop(into)] height: f32, #[prop(into)] data: ElementData) -> im
                 stroke=data.colour.to_string()
             ></path>
         }
+        .into_view(),
+        ElemStyle::Spacer => view! {}
         .into_view(),
         ElemStyle::Bar => view! {
             <path d=format!("M0.0,0.0 L0.0,{}", height) stroke=data.colour.to_string()></path>
@@ -167,9 +169,9 @@ pub fn Figure(
             preserveAspectRatio="none"
         >
             <For
-                each=tracks
-                key=move |(index, _)| { *index }
-                children=move |(index, track)| {
+                each=move || tracks().into_iter().enumerate()
+                key=move |(_, (id, _))| *id
+                children=move |(index, (_, track))| {
                     let t = &track.clone();
                     view! { <Track y=index as f32 * t.height elements=t.elements.clone()/> }
                 }

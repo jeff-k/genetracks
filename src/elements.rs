@@ -20,6 +20,7 @@ pub enum ElemStyle {
     #[default]
     Rect,
     Tick,
+    Spacer,
 }
 
 #[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
