@@ -1,6 +1,8 @@
+pub mod circular;
 pub mod elements;
 
 pub use elements::{ElemStyle, ElementData, TrackData};
+//pub use circular;
 use leptos::*;
 
 #[component]
@@ -121,15 +123,12 @@ pub fn Track(
         <g transform=format!(
             "translate(0 {})",
             y,
-        )>{elements.into_iter().map(|e| view! { <Element height data=e/> }).collect_view()}</g>
+        )>{elements.into_iter().map(|e| view! { <Element height data=e /> }).collect_view()}</g>
     }
 }
 
 pub fn from_json(json: &str) -> Vec<TrackData> {
-    match serde_json::from_str::<Vec<TrackData>>(json) {
-        Ok(ts) => ts,
-        _ => vec![],
-    }
+    serde_json::from_str::<Vec<TrackData>>(json).unwrap_or_default()
 }
 
 #[component]
@@ -173,59 +172,10 @@ pub fn Figure(
                 key=move |(_, (id, _))| *id
                 children=move |(index, (_, track))| {
                     let t = &track.clone();
-                    view! { <Track y=index as f32 * t.height elements=t.elements.clone()/> }
+                    view! { <Track y=index as f32 * t.height elements=t.elements.clone() /> }
                 }
             />
 
         </svg>
     }
 }
-
-/*
-fn main() {
-    leptos::mount_to_body(App)
-}
-
-fn covid() -> Vec<TrackData> {
-    let j = r#"[{"elements": [{"start": 13468, "end": 21555, "label": "ORF1b", "colour": "Orange"}, {"start": 25393, "end": 26220, "label": "ORF3A", "colour": "Turquoise"}, {"start": 26245, "end": 26472, "label": "E", "colour": "Yellowgreen"}, {"start": 27191, "end": 27387, "label": "ORF6", "colour": "Salmon"}, {"start": 27394, "end": 27759, "label": "ORF7a", "colour": "Plum"}, {"start": 29558, "end": 29674, "label": "ORF10", "colour": "Red"}]}, {"elements": [{"start": 266, "end": 13468, "label": "ORF1a", "colour": "Lightblue"}, {"start": 21563, "end": 25384, "label": "S", "colour": "Steelblue"}, {"start": 28274, "end": 29533, "label": "N", "colour": "Mediumaquamarine"}]}, {"elements": [{"start": 26523, "end": 27191, "label": "M", "colour": "Turquoise"}, {"start": 27894, "end": 28259, "label": "ORF8", "colour": "Yellowgreen"}]}]"#;
-    from_json(&j)
-}
-
-#[component]
-fn App() -> impl IntoView {
-    let (width, set_width) = create_signal::<f32>(800.0);
-    let (tracks, set_tracks) = create_signal::<Vec<(usize, TrackData)>>(vec![]);
-
-    let mut index = 0;
-    let add_track = move |_| {
-        for track in covid() {
-            set_tracks.update(|t| t.push((index, track.clone())));
-            index += 1;
-        }
-    };
-
-    view! {
-        <div class="app-container">
-            <Figure width=width tracks=tracks></Figure>
-            <div></div>
-
-            <button on:click=move |_| {
-                set_width.update(|w| *w -= 20.0);
-            }>
-
-                "<<"
-            </button>
-
-                                    <button on:click=move |_| {
-                set_width.update(|w| *w += 20.0);
-            }>
-
-                ">>"
-            </button>
-            <button on:click=add_track>
-            "add"
-            </button>
-        </div>
-    }
-}
-*/
