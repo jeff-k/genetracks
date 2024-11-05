@@ -25,7 +25,7 @@ struct TrackCx {
 #[component]
 pub fn Figure(#[prop(into)] length: f64, children: Children) -> impl IntoView {
     let (cx, set_cx) = create_signal(FigCx {
-        length: 4323.0,
+        length: length,
         center_x: 400.0,
         center_y: 400.0,
         base_radius: 200.0,
@@ -192,7 +192,7 @@ pub fn Tick(#[prop(into)] pos: f64, #[prop(optional)] label: Option<String>) -> 
     });
 
     view! {
-        <g style="z-index: 10000">
+        <g>
             <path d=path stroke="black" stroke-width="1" fill="none" />
 
             {label
