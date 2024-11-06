@@ -1,13 +1,12 @@
 pub use crate::elements::{Colour, ElemStyle, ElementData, TrackData};
 use crate::Point;
-use core::f64::consts::PI;
+//use core::fmt;
 use leptos::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct FigCx {
     length: f64,
-    center: Point,
-    base_radius: f64,
+    width: f64,
     track_spacing: f64,
     track_height: f64,
 }
@@ -15,8 +14,8 @@ struct FigCx {
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct TrackCx {
     length: f64,
+    width: f64,
     center: Point,
-    radius: f64,
     track_spacing: f64,
     track_height: f64,
 }
@@ -25,8 +24,7 @@ struct TrackCx {
 pub fn Figure(#[prop(into)] length: Signal<u32>, children: Children) -> impl IntoView {
     let cx = create_memo(move |_| FigCx {
         length: length() as f64,
-        center: Point { x: 400.0, y: 400.0 },
-        base_radius: 300.0,
+        width: 700.0,
         track_spacing: 10.0,
         track_height: 12.0,
     });
@@ -34,7 +32,7 @@ pub fn Figure(#[prop(into)] length: Signal<u32>, children: Children) -> impl Int
 
     view! {
         {move || format!("len {}", length())}
-        <svg viewBox="0 0 800 800">{children()}</svg>
+        <svg viewBox="0 0 800 400">{children()}</svg>
     }
 }
 
@@ -42,24 +40,27 @@ pub fn Figure(#[prop(into)] length: Signal<u32>, children: Children) -> impl Int
 pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Track must be descendent of Figure");
 
-    let track_radius = create_memo(move |_| {
+    let track_cx = create_memo(move |_| {
         let fig = cx();
         TrackCx {
             length: fig.length,
-            center: fig.center,
-            radius: fig.base_radius + (index as f64 * fig.track_spacing),
+            width: fig.width,
+            center: Point {
+                x: fig.width / 2.0,
+                y: index as f64 * fig.track_height,
+            },
             track_spacing: fig.track_spacing,
             track_height: fig.track_height,
         }
     });
 
-    provide_context(track_radius);
+    provide_context(track_cx);
 
     view! { <g>{children()}</g> }
 }
 
 #[component]
-pub fn Bar(
+pub fn Region(
     #[prop(into)] start: u32,
     #[prop(into)] end: u32,
     #[prop(optional)] label: Option<String>,
@@ -73,89 +74,26 @@ pub fn Bar(
 
     let text_pos = create_memo(move |_| {
         let track = parent();
-
-        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
-        let mid_angle = (start_angle + end_angle) / 2.0;
-
-        let x = track.center.x + track.radius * mid_angle.cos();
-        let y = track.center.y + track.radius * mid_angle.sin();
-
-        (x, y)
+        (track.center.x, track.center.y)
     });
 
     let path = create_memo(move |_| {
         let track = parent();
 
-        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
-
-        let inner_radius = track.radius - track.track_height / 2.0;
-        let outer_radius = track.radius + track.track_height / 2.0;
-        let center = track.radius;
-
-        let mk_point = |radius: f64, angle: f64| Point {
-            x: track.center.x + radius * angle.cos(),
-            y: track.center.y + radius * angle.sin(),
-        };
-
-        let (base_start_angle, base_end_angle) = match style {
-            ElemStyle::Left => (start_angle + 0.02, end_angle),
-            ElemStyle::Right => (start_angle, end_angle - 0.02),
-            _ => (start_angle, end_angle),
-        };
-
-        let start_outer = mk_point(outer_radius, base_start_angle);
-
-        let end_outer = mk_point(outer_radius, base_end_angle);
-
-        let start_inner = mk_point(inner_radius, base_start_angle);
-
-        let end_inner = mk_point(inner_radius, base_end_angle);
-
-        let start_center = mk_point(center, start_angle);
-
-        let end_center = mk_point(center, end_angle);
-
-        let peak = match style {
-            ElemStyle::Left => mk_point(center, start_angle),
-            ElemStyle::Right => mk_point(center, end_angle),
-            _ => Point { x: 0.0, y: 0.0 },
-        };
-
-        let large_arc_flag = if end_angle - start_angle <= PI {
-            "0"
-        } else {
-            "1"
-        };
+        let origin = track.center;
+        let start_x = origin.x;
+        let end_x = end;
+        let end_y = origin.y + track.track_height;
+        let peak_x = end + 10.0;
 
         match style {
-            ElemStyle::Rect => format!(
-                "M {start_outer} \
-            L {start_inner} \
-            M {start_center} \
-            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-            M {end_outer} \
-            L {end_inner}"
-            ),
-            ElemStyle::Left => format!(
-                "M {start_outer} \
-                L {peak} \
-                L {start_inner} \
-                M {start_center} \
-                A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-                M {end_outer} \
-                L {end_inner}"
-            ),
-            ElemStyle::Right => format!(
-                "M {start_outer} \
-                L {start_inner} \
-                M {start_center} \
-                A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-                M {end_outer} \
-                L {peak} \
-                L {end_inner}"
-            ),
+            ElemStyle::Rect => format!("M {origin} H {end_x} V {end_y} H {start_x} Z "),
+            ElemStyle::Right => {
+                format!("M {origin} L {peak_x} {end_y} L {end_x} {end_y} V {end_y} Z")
+            }
+            ElemStyle::Left => {
+                format!("M {origin} H {peak_x} V {peak_x} L {peak_x} {peak_x} V {peak_x} Z")
+            }
             _ => format!(""),
         }
     });
@@ -195,19 +133,16 @@ pub fn Label(
 
     let text_pos = create_memo(move |_| {
         let track = parent();
-
-        let mid_angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
-
-        let x = track.center.x + track.radius * mid_angle.cos();
-        let y = track.center.y + track.radius * mid_angle.sin();
-
-        (x, y)
+        Point {
+            x: pos,
+            y: track.center.y,
+        }
     });
 
     view! {
         <text
-            x=move || text_pos().0
-            y=move || text_pos().1
+            x=move || text_pos().x
+            y=move || text_pos().y
             text-anchor="middle"
             dominant-baseline="middle"
             fill=color.to_string()
@@ -227,34 +162,19 @@ pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> 
 
     let text_pos = create_memo(move |_| {
         let track = parent();
-
-        let angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
-        let text_radius = track.radius + track.track_height + 50.0;
-
-        let x = track.center.x + text_radius * angle.cos();
-        let y = track.center.y + text_radius * angle.sin();
-
-        (x, y)
+        Point {
+            x: pos,
+            y: track.center.y,
+        }
     });
 
     let path = create_memo(move |_| {
         let track = parent();
 
-        let angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
+        let origin = track.center;
+        let end = track.center;
 
-        let inner_radius = track.radius - track.track_height / 2.0;
-        let outer_radius = track.radius + track.track_height + 40.0;
-
-        let mk_point = |radius: f64, angle: f64| Point {
-            x: track.center.x + radius * angle.cos(),
-            y: track.center.y + radius * angle.sin(),
-        };
-
-        let inner = mk_point(inner_radius, angle);
-
-        let outer = mk_point(outer_radius, angle);
-
-        format!("M {inner} L {outer}")
+        format!("M {origin} L {end}")
     });
 
     view! {
@@ -265,8 +185,8 @@ pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> 
                 .map(|text| {
                     view! {
                         <text
-                            x=move || text_pos().0
-                            y=move || text_pos().1
+                            x=move || text_pos().x
+                            y=move || text_pos().y
                             text-anchor="middle"
                             dominant-baseline="middle"
                             fill="black"
@@ -282,6 +202,7 @@ pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> 
     }
 }
 
+/*
 #[component]
 pub fn Region(
     #[prop(into)] start: u32,
@@ -404,3 +325,4 @@ pub fn Region(
         </>
     }
 }
+*/
