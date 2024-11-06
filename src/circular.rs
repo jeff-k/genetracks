@@ -1,12 +1,12 @@
 pub use crate::elements::{Colour, ElemStyle, ElementData, TrackData};
 use core::f64::consts::PI;
+use core::fmt;
 use leptos::*;
 
 #[derive(Clone, Copy, Debug)]
 struct FigCx {
     length: f64,
-    center_x: f64,
-    center_y: f64,
+    center: Point,
     base_radius: f64,
     track_spacing: f64,
     track_height: f64,
@@ -15,8 +15,7 @@ struct FigCx {
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct TrackCx {
     length: f64,
-    center_x: f64,
-    center_y: f64,
+    center: Point,
     radius: f64,
     track_spacing: f64,
     track_height: f64,
@@ -24,11 +23,10 @@ struct TrackCx {
 
 #[component]
 pub fn Figure(#[prop(into)] length: f64, children: Children) -> impl IntoView {
-    let (cx, set_cx) = create_signal(FigCx {
-        length: length,
-        center_x: 400.0,
-        center_y: 400.0,
-        base_radius: 200.0,
+    let (cx, _set_cx) = create_signal(FigCx {
+        length,
+        center: Point { x: 400.0, y: 400.0 },
+        base_radius: 300.0,
         track_spacing: 10.0,
         track_height: 12.0,
     });
@@ -45,8 +43,7 @@ pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
         let fig = cx();
         TrackCx {
             length: fig.length,
-            center_x: fig.center_x,
-            center_y: fig.center_y,
+            center: fig.center,
             radius: fig.base_radius + (index as f64 * fig.track_spacing),
             track_spacing: fig.track_spacing,
             track_height: fig.track_height,
@@ -64,51 +61,61 @@ pub fn Bar(
     #[prop(into)] end: f64,
     #[prop(optional)] label: Option<String>,
     #[prop(optional)] color: Colour,
+    #[prop(optional)] style: ElemStyle,
 ) -> impl IntoView {
     let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
 
     let text_pos = create_memo(move |_| {
-        let fig = parent();
+        let track = parent();
 
-        let start_angle = (start / fig.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / fig.length) * 2.0 * PI - PI / 2.0;
+        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
+        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
         let mid_angle = (start_angle + end_angle) / 2.0;
 
-        let x = fig.center_x + fig.radius * mid_angle.cos();
-        let y = fig.center_y + fig.radius * mid_angle.sin();
+        let x = track.center.x + track.radius * mid_angle.cos();
+        let y = track.center.y + track.radius * mid_angle.sin();
 
         (x, y)
     });
 
     let path = create_memo(move |_| {
-        let fig = parent();
-        //let radius = parent();
+        let track = parent();
 
-        let start_angle = (start / fig.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / fig.length) * 2.0 * PI - PI / 2.0;
+        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
+        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
 
-        let inner_radius = fig.radius - fig.track_height / 2.0;
-        let outer_radius = fig.radius + fig.track_height / 2.0;
+        let inner_radius = track.radius - track.track_height / 2.0;
+        let outer_radius = track.radius + track.track_height / 2.0;
+        let center = track.radius;
 
-        let (start_outer_x, start_outer_y) = (
-            fig.center_x + outer_radius * start_angle.cos(),
-            fig.center_y + outer_radius * start_angle.sin(),
-        );
+        let mk_point = |radius: f64, angle: f64| Point {
+            x: track.center.x + radius * angle.cos(),
+            y: track.center.y + radius * angle.sin(),
+        };
 
-        let (end_outer_x, end_outer_y) = (
-            fig.center_x + outer_radius * end_angle.cos(),
-            fig.center_y + outer_radius * end_angle.sin(),
-        );
+        let (base_start_angle, base_end_angle) = match style {
+            ElemStyle::Left => (start_angle + 0.02, end_angle),
+            ElemStyle::Right => (start_angle, end_angle - 0.02),
+            _ => (start_angle, end_angle),
+        };
 
-        let (start_inner_x, start_inner_y) = (
-            fig.center_x + inner_radius * start_angle.cos(),
-            fig.center_y + inner_radius * start_angle.sin(),
-        );
+        let start_outer = mk_point(outer_radius, base_start_angle);
 
-        let (end_inner_x, end_inner_y) = (
-            fig.center_x + inner_radius * end_angle.cos(),
-            fig.center_y + inner_radius * end_angle.sin(),
-        );
+        let end_outer = mk_point(outer_radius, base_end_angle);
+
+        let start_inner = mk_point(inner_radius, base_start_angle);
+
+        let end_inner = mk_point(inner_radius, base_end_angle);
+
+        let start_center = mk_point(center, start_angle);
+
+        let end_center = mk_point(center, end_angle);
+
+        let peak = match style {
+            ElemStyle::Left => mk_point(center, start_angle),
+            ElemStyle::Right => mk_point(center, end_angle),
+            _ => Point { x: 0.0, y: 0.0 },
+        };
 
         let large_arc_flag = if end_angle - start_angle <= PI {
             "0"
@@ -116,19 +123,35 @@ pub fn Bar(
             "1"
         };
 
-        let centre = fig.radius;
-
-        let (start_center_x, start_center_y) = (
-            fig.center_x + centre * start_angle.cos(),
-            fig.center_y + centre * start_angle.sin(),
-        );
-
-        let (end_center_x, end_center_y) = (
-            fig.center_x + centre * end_angle.cos(),
-            fig.center_y + centre * end_angle.sin(),
-        );
-
-        format!("M {start_outer_x},{start_outer_y} L {start_inner_x},{start_inner_y} M {start_center_x},{start_center_y} A {centre} {centre} 0 {large_arc_flag} 1 {end_center_x},{end_center_y} M {end_outer_x},{end_outer_y} L {end_inner_x},{end_inner_y}")
+        match style {
+            ElemStyle::Rect => format!(
+                "M {start_outer} \
+            L {start_inner} \
+            M {start_center} \
+            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
+            M {end_outer} \
+            L {end_inner}"
+            ),
+            ElemStyle::Left => format!(
+                "M {start_outer} \
+                L {peak} \
+                L {start_inner} \
+                M {start_center} \
+                A {center} {center} 0 {large_arc_flag} 1 {end_center} \
+                M {end_outer} \
+                L {end_inner}"
+            ),
+            ElemStyle::Right => format!(
+                "M {start_outer} \
+                L {start_inner} \
+                M {start_center} \
+                A {center} {center} 0 {large_arc_flag} 1 {end_center} \
+                M {end_outer} \
+                L {peak} \
+                L {end_inner}"
+            ),
+            _ => format!(""),
+        }
     });
 
     view! {
@@ -155,6 +178,40 @@ pub fn Bar(
 }
 
 #[component]
+pub fn Label(
+    #[prop(into)] pos: f64,
+    #[prop(optional)] label: String,
+    #[prop(optional)] color: Colour,
+) -> impl IntoView {
+    let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
+
+    let text_pos = create_memo(move |_| {
+        let track = parent();
+
+        let mid_angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
+
+        let x = track.center.x + track.radius * mid_angle.cos();
+        let y = track.center.y + track.radius * mid_angle.sin();
+
+        (x, y)
+    });
+
+    view! {
+        <text
+            x=move || text_pos().0
+            y=move || text_pos().1
+            text-anchor="middle"
+            dominant-baseline="middle"
+            fill=color.to_string()
+            font-size="smaller"
+            font-family="monospace"
+        >
+            {label}
+        </text>
+    }
+}
+
+#[component]
 pub fn Tick(#[prop(into)] pos: f64, #[prop(optional)] label: Option<String>) -> impl IntoView {
     let parent = use_context::<Memo<TrackCx>>().expect("must have track as parent");
 
@@ -162,10 +219,10 @@ pub fn Tick(#[prop(into)] pos: f64, #[prop(optional)] label: Option<String>) -> 
         let track = parent();
 
         let angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
-        let text_radius = track.radius + track.track_height + 30.0;
+        let text_radius = track.radius + track.track_height + 50.0;
 
-        let x = track.center_x + text_radius * angle.cos();
-        let y = track.center_y + text_radius * angle.sin();
+        let x = track.center.x + text_radius * angle.cos();
+        let y = track.center.y + text_radius * angle.sin();
 
         (x, y)
     });
@@ -176,19 +233,18 @@ pub fn Tick(#[prop(into)] pos: f64, #[prop(optional)] label: Option<String>) -> 
         let angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
 
         let inner_radius = track.radius - track.track_height / 2.0;
-        let outer_radius = track.radius + track.track_height + 20.0;
+        let outer_radius = track.radius + track.track_height + 40.0;
 
-        let (inner_x, inner_y) = (
-            track.center_x + inner_radius * angle.cos(),
-            track.center_y + inner_radius * angle.sin(),
-        );
+        let mk_point = |radius: f64, angle: f64| Point {
+            x: track.center.x + radius * angle.cos(),
+            y: track.center.y + radius * angle.sin(),
+        };
 
-        let (outer_x, outer_y) = (
-            track.center_x + outer_radius * angle.cos(),
-            track.center_y + outer_radius * angle.sin(),
-        );
+        let inner = mk_point(inner_radius, angle);
 
-        format!("M {inner_x},{inner_y} L {outer_x},{outer_y}")
+        let outer = mk_point(outer_radius, angle);
+
+        format!("M {inner} L {outer}")
     });
 
     view! {
@@ -216,6 +272,18 @@ pub fn Tick(#[prop(into)] pos: f64, #[prop(optional)] label: Option<String>) -> 
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq)]
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+impl fmt::Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{},{}", self.x, self.y)
+    }
+}
+
 #[component]
 pub fn Region(
     #[prop(into)] start: f64,
@@ -228,47 +296,48 @@ pub fn Region(
     let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
 
     let text_pos = create_memo(move |_| {
-        let fig = parent();
+        let track = parent();
 
-        let start_angle = (start / fig.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / fig.length) * 2.0 * PI - PI / 2.0;
+        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
+        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
         let mid_angle = (start_angle + end_angle) / 2.0;
 
-        let x = fig.center_x + fig.radius * mid_angle.cos();
-        let y = fig.center_y + fig.radius * mid_angle.sin();
+        let x = track.center.x + track.radius * mid_angle.cos();
+        let y = track.center.y + track.radius * mid_angle.sin();
 
         (x, y)
     });
 
     let path = create_memo(move |_| {
-        let fig = parent();
+        let track = parent();
         //let radius = parent();
 
-        let start_angle = (start / fig.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / fig.length) * 2.0 * PI - PI / 2.0;
+        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
+        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
 
-        let inner_radius = fig.radius - fig.track_height / 2.0;
-        let outer_radius = fig.radius + fig.track_height / 2.0;
+        let inner_radius = track.radius - track.track_height / 2.0;
+        let outer_radius = track.radius + track.track_height / 2.0;
 
-        let (start_outer_x, start_outer_y) = (
-            fig.center_x + outer_radius * start_angle.cos(),
-            fig.center_y + outer_radius * start_angle.sin(),
-        );
+        let center_radius = track.radius;
 
-        let (end_outer_x, end_outer_y) = (
-            fig.center_x + outer_radius * end_angle.cos(),
-            fig.center_y + outer_radius * end_angle.sin(),
-        );
+        let mk_point = |radius: f64, angle: f64| Point {
+            x: track.center.x + radius * angle.cos(),
+            y: track.center.y + radius * angle.sin(),
+        };
 
-        let (start_inner_x, start_inner_y) = (
-            fig.center_x + inner_radius * start_angle.cos(),
-            fig.center_y + inner_radius * start_angle.sin(),
-        );
+        let (base_start_angle, base_end_angle) = match style {
+            ElemStyle::Left => (start_angle + 0.03, end_angle),
+            ElemStyle::Right => (start_angle, end_angle - 0.03),
+            _ => (start_angle, end_angle),
+        };
 
-        let (end_inner_x, end_inner_y) = (
-            fig.center_x + inner_radius * end_angle.cos(),
-            fig.center_y + inner_radius * end_angle.sin(),
-        );
+        let start_outer = mk_point(outer_radius, base_start_angle);
+
+        let end_outer = mk_point(outer_radius, base_end_angle);
+
+        let start_inner = mk_point(inner_radius, base_start_angle);
+
+        let end_inner = mk_point(inner_radius, base_end_angle);
 
         let large_arc_flag = if end_angle - start_angle <= PI {
             "0"
@@ -276,27 +345,35 @@ pub fn Region(
             "1"
         };
 
+        let peak = match style {
+            ElemStyle::Left => mk_point(center_radius, start_angle),
+            ElemStyle::Right => mk_point(center_radius, end_angle),
+            _ => Point { x: 0.0, y: 0.0 },
+        };
+
         match style {
             ElemStyle::Rect => {
-                format!("M {start_outer_x},{start_outer_y} A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer_x}, {end_outer_y} L {end_inner_x},{end_inner_y} A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner_x},{start_inner_y} Z")
+                format!("M {start_outer} A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} L {end_inner} A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} Z")
             }
             ElemStyle::Left => {
-                let peak_angle = start_angle - 0.03;
-                let (peak_point_x, peak_point_y) = (
-                    fig.center_x + fig.radius * peak_angle.cos(),
-                    fig.center_y + fig.radius * peak_angle.sin(),
-                );
-
-                format!("M {start_outer_x},{start_outer_y} A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer_x}, {end_outer_y} L {end_inner_x},{end_inner_y} A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner_x},{start_inner_y} L {peak_point_x},{peak_point_y} Z")
+                format!(
+                    "M {start_outer} \
+            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
+            L {end_inner} \
+            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
+            L {peak} \
+            Z"
+                )
             }
             ElemStyle::Right => {
-                let peak_angle = end_angle + 0.03;
-                let (peak_point_x, peak_point_y) = (
-                    fig.center_x + fig.radius * peak_angle.cos(),
-                    fig.center_y + fig.radius * peak_angle.sin(),
-                );
-
-                format!("M {start_outer_x},{start_outer_y} A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer_x}, {end_outer_y} L {peak_point_x},{peak_point_y} L {end_inner_x},{end_inner_y} A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner_x},{start_inner_y} Z")
+                format!(
+                    "M {start_outer} \
+            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
+            L {peak} \
+            L {end_inner} \
+            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
+            Z"
+                )
             }
             _ => {
                 format!("")
