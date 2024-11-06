@@ -3,7 +3,7 @@ use core::f64::consts::PI;
 use core::fmt;
 use leptos::*;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 struct FigCx {
     length: f64,
     center: Point,
@@ -22,9 +22,9 @@ struct TrackCx {
 }
 
 #[component]
-pub fn Figure(#[prop(into)] length: f64, children: Children) -> impl IntoView {
-    let (cx, _set_cx) = create_signal(FigCx {
-        length,
+pub fn Figure(#[prop(into)] length: Signal<u32>, children: Children) -> impl IntoView {
+    let cx = create_memo(move |_| FigCx {
+        length: length() as f64,
         center: Point { x: 400.0, y: 400.0 },
         base_radius: 300.0,
         track_spacing: 10.0,
@@ -32,12 +32,15 @@ pub fn Figure(#[prop(into)] length: f64, children: Children) -> impl IntoView {
     });
     provide_context(cx);
 
-    view! { <svg viewBox="0 0 800 800">{children()}</svg> }
+    view! {
+        {move || format!("len {}", length())}
+        <svg viewBox="0 0 800 800">{children()}</svg>
+    }
 }
 
 #[component]
 pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
-    let cx = use_context::<ReadSignal<FigCx>>().expect("Track must be descendent of Figure");
+    let cx = use_context::<Memo<FigCx>>().expect("Track must be descendent of Figure");
 
     let track_radius = create_memo(move |_| {
         let fig = cx();
@@ -57,13 +60,16 @@ pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
 
 #[component]
 pub fn Bar(
-    #[prop(into)] start: f64,
-    #[prop(into)] end: f64,
+    #[prop(into)] start: u32,
+    #[prop(into)] end: u32,
     #[prop(optional)] label: Option<String>,
     #[prop(optional)] color: Colour,
     #[prop(optional)] style: ElemStyle,
 ) -> impl IntoView {
     let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
+
+    let start = start as f64;
+    let end = end as f64;
 
     let text_pos = create_memo(move |_| {
         let track = parent();
@@ -179,11 +185,13 @@ pub fn Bar(
 
 #[component]
 pub fn Label(
-    #[prop(into)] pos: f64,
+    #[prop(into)] pos: u32,
     #[prop(optional)] label: String,
     #[prop(optional)] color: Colour,
 ) -> impl IntoView {
     let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
+
+    let pos = pos as f64;
 
     let text_pos = create_memo(move |_| {
         let track = parent();
@@ -212,8 +220,10 @@ pub fn Label(
 }
 
 #[component]
-pub fn Tick(#[prop(into)] pos: f64, #[prop(optional)] label: Option<String>) -> impl IntoView {
+pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> impl IntoView {
     let parent = use_context::<Memo<TrackCx>>().expect("must have track as parent");
+
+    let pos = pos as f64;
 
     let text_pos = create_memo(move |_| {
         let track = parent();
@@ -286,14 +296,17 @@ impl fmt::Display for Point {
 
 #[component]
 pub fn Region(
-    #[prop(into)] start: f64,
-    #[prop(into)] end: f64,
+    #[prop(into)] start: u32,
+    #[prop(into)] end: u32,
     #[prop(optional)] style: ElemStyle,
     #[prop(optional)] label: Option<String>,
     #[prop(optional)] color: Colour,
 ) -> impl IntoView {
     //    let cx = use_context::<ReadSignal<FigCx>>().expect("Region must be descendent of Figure");
     let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
+
+    let start = start as f64;
+    let end = end as f64;
 
     let text_pos = create_memo(move |_| {
         let track = parent();
