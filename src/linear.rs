@@ -14,10 +14,9 @@ struct FigCx {
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct TrackCx {
     length: f64,
-    width: f64,
-    center: Point,
-    track_spacing: f64,
-    track_height: f64,
+    origin: Point,
+    scale: f64,
+    height: f64,
 }
 
 #[component]
@@ -44,13 +43,12 @@ pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
         let fig = cx();
         TrackCx {
             length: fig.length,
-            width: fig.width,
-            center: Point {
-                x: fig.width / 2.0,
+            scale: fig.width / fig.length,
+            height: fig.track_height,
+            origin: Point {
+                x: 0.0,
                 y: index as f64 * fig.track_height,
             },
-            track_spacing: fig.track_spacing,
-            track_height: fig.track_height,
         }
     });
 
@@ -74,50 +72,87 @@ pub fn Region(
 
     let text_pos = create_memo(move |_| {
         let track = parent();
-        (track.center.x, track.center.y)
+        Point {
+            x: (start + end) / 2.0 * track.scale,
+            y: track.origin.y,
+        }
     });
 
     let path = create_memo(move |_| {
         let track = parent();
 
-        let origin = track.center;
-        let start_x = origin.x;
-        let end_x = end;
-        let end_y = origin.y + track.track_height;
-        let peak_x = end + 10.0;
+        let start_x = (track.origin.x + start) * track.scale;
+        let end_x = (track.origin.x + end) * track.scale;
+        let y = track.origin.y;
+
+        let base_top = Point { x: start_x, y };
+        let base_bottom = Point {
+            x: start_x,
+            y: y + track.height,
+        };
+        let end_top = Point { x: end_x, y };
+        let end_bottom = Point {
+            x: end_x,
+            y: y + track.height,
+        };
 
         match style {
-            ElemStyle::Rect => format!("M {origin} H {end_x} V {end_y} H {start_x} Z "),
+            ElemStyle::Rect => {
+                format!(
+                    "M {base_top} \
+                    H {end_x} \
+                    V {} \
+                    H {start_x} \
+                    Z",
+                    base_bottom.y
+                )
+            }
             ElemStyle::Right => {
-                format!("M {origin} L {peak_x} {end_y} L {end_x} {end_y} V {end_y} Z")
+                let peak = Point {
+                    x: end_x + (10.0 * track.scale),
+                    y: y + (track.height / 2.0),
+                };
+                format!(
+                    "M {base_top} \
+                    H {end_x} \
+                    L {peak} \
+                    L {end_bottom} \
+                    H {start_x} \
+                    Z"
+                )
             }
             ElemStyle::Left => {
-                format!("M {origin} H {peak_x} V {peak_x} L {peak_x} {peak_x} V {peak_x} Z")
+                let peak = Point {
+                    x: start_x - (10.0 * track.scale),
+                    y: y + (track.height / 2.0),
+                };
+                format!(
+                    "M {base_top} \
+                    H {end_x} \
+                    V {} \
+                    H {end_x} \
+                    L {peak} \
+                    Z",
+                    end_bottom.y
+                )
             }
             _ => format!(""),
         }
     });
 
     view! {
-        <>
-            <path d=path stroke=color.to_string() stroke_width="2" fill="none" />
-            {label
-                .map(|text| {
-                    view! {
-                        <text
-                            x=move || text_pos().0
-                            y=move || text_pos().1
-                            text-anchor="middle"
-                            dominant-baseline="middle"
-                            fill="black"
-                            font-size="smaller"
-                            font-family="monospace"
-                        >
-                            {text}
-                        </text>
-                    }
-                })}
-        </>
+        <path d=path stroke="black" stroke-width="1" fill="none" />
+        <text
+            x=move || text_pos().x
+            y=move || text_pos().y
+            text-anchor="middle"
+            dominant-baseline="middle"
+            fill=color.to_string()
+            font-size="smaller"
+            font-family="monospace"
+        >
+            {label}
+        </text>
     }
 }
 
@@ -135,7 +170,7 @@ pub fn Label(
         let track = parent();
         Point {
             x: pos,
-            y: track.center.y,
+            y: track.origin.y,
         }
     });
 
@@ -164,15 +199,15 @@ pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> 
         let track = parent();
         Point {
             x: pos,
-            y: track.center.y,
+            y: track.origin.y,
         }
     });
 
     let path = create_memo(move |_| {
         let track = parent();
 
-        let origin = track.center;
-        let end = track.center;
+        let origin = (track.origin.x + pos) * track.scale;
+        let end = track.origin.y + 10.0;
 
         format!("M {origin} L {end}")
     });
@@ -202,116 +237,132 @@ pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> 
     }
 }
 
-/*
 #[component]
-pub fn Region(
+pub fn Bar(
     #[prop(into)] start: u32,
     #[prop(into)] end: u32,
-    #[prop(optional)] style: ElemStyle,
     #[prop(optional)] label: Option<String>,
     #[prop(optional)] color: Colour,
+    #[prop(optional)] style: ElemStyle,
 ) -> impl IntoView {
-    //    let cx = use_context::<ReadSignal<FigCx>>().expect("Region must be descendent of Figure");
-    let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
+    let parent = use_context::<Memo<TrackCx>>().expect("Bar must be child of Track");
 
     let start = start as f64;
     let end = end as f64;
 
     let text_pos = create_memo(move |_| {
         let track = parent();
-
-        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
-        let mid_angle = (start_angle + end_angle) / 2.0;
-
-        let x = track.center.x + track.radius * mid_angle.cos();
-        let y = track.center.y + track.radius * mid_angle.sin();
-
-        (x, y)
+        Point {
+            x: track.origin.x + ((start + end) / 2.0 * track.scale),
+            y: track.origin.y + (track.height / 2.0),
+        }
     });
 
     let path = create_memo(move |_| {
         let track = parent();
-        //let radius = parent();
 
-        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
-
-        let inner_radius = track.radius - track.track_height / 2.0;
-        let outer_radius = track.radius + track.track_height / 2.0;
-
-        let center_radius = track.radius;
-
-        let mk_point = |radius: f64, angle: f64| Point {
-            x: track.center.x + radius * angle.cos(),
-            y: track.center.y + radius * angle.sin(),
-        };
-
-        let (base_start_angle, base_end_angle) = match style {
-            ElemStyle::Left => (start_angle + 0.03, end_angle),
-            ElemStyle::Right => (start_angle, end_angle - 0.03),
-            _ => (start_angle, end_angle),
-        };
-
-        let start_outer = mk_point(outer_radius, base_start_angle);
-
-        let end_outer = mk_point(outer_radius, base_end_angle);
-
-        let start_inner = mk_point(inner_radius, base_start_angle);
-
-        let end_inner = mk_point(inner_radius, base_end_angle);
-
-        let large_arc_flag = if end_angle - start_angle <= PI {
-            "0"
-        } else {
-            "1"
-        };
-
-        let peak = match style {
-            ElemStyle::Left => mk_point(center_radius, start_angle),
-            ElemStyle::Right => mk_point(center_radius, end_angle),
-            _ => Point { x: 0.0, y: 0.0 },
-        };
+        // Convert genome coordinates to screen coordinates
+        let start_x = track.origin.x + (start * track.scale);
+        let end_x = track.origin.x + (end * track.scale);
+        let top_y = track.origin.y;
+        let bottom_y = track.origin.y + track.height;
+        let center_y = track.origin.y + (track.height / 2.0);
 
         match style {
             ElemStyle::Rect => {
-                format!("M {start_outer} A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} L {end_inner} A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} Z")
+                // Standard "|---|" bar
+                format!(
+                    "M {},{} \
+                    L {},{} \
+                    M {},{} \
+                    H {} \
+                    M {},{} \
+                    L {},{}",
+                    start_x,
+                    top_y, // Start vertical line
+                    start_x,
+                    bottom_y,
+                    start_x,
+                    center_y, // Horizontal line
+                    end_x,
+                    end_x,
+                    top_y, // End vertical line
+                    end_x,
+                    bottom_y
+                )
             }
             ElemStyle::Left => {
+                // "<---|" bar
+                let peak = Point {
+                    x: start_x - (10.0 * track.scale),
+                    y: center_y,
+                };
                 format!(
-                    "M {start_outer} \
-            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
-            L {end_inner} \
-            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
-            L {peak} \
-            Z"
+                    "M {},{} \
+                    L {} {} \
+                    L {},{} \
+                    M {},{} \
+                    H {} \
+                    M {},{} \
+                    L {},{}",
+                    start_x,
+                    top_y, // Start peak top
+                    peak.x,
+                    peak.y, // Peak point
+                    start_x,
+                    bottom_y, // Start peak bottom
+                    start_x,
+                    center_y, // Horizontal line
+                    end_x,
+                    end_x,
+                    top_y, // End vertical line
+                    end_x,
+                    bottom_y
                 )
             }
             ElemStyle::Right => {
+                // "|--->" bar
+                let peak = Point {
+                    x: end_x + (10.0 * track.scale),
+                    y: center_y,
+                };
                 format!(
-                    "M {start_outer} \
-            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
-            L {peak} \
-            L {end_inner} \
-            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
-            Z"
+                    "M {},{} \
+                    L {},{} \
+                    M {},{} \
+                    H {} \
+                    M {},{} \
+                    L {} {} \
+                    L {},{}",
+                    start_x,
+                    top_y, // Start vertical line
+                    start_x,
+                    bottom_y,
+                    start_x,
+                    center_y, // Horizontal line
+                    end_x,
+                    end_x,
+                    top_y, // End peak top
+                    peak.x,
+                    peak.y, // Peak point
+                    end_x,
+                    bottom_y // End peak bottom
                 )
             }
-            _ => {
-                format!("")
-            }
+            _ => format!(""),
         }
     });
 
     view! {
         <>
-            <path d=path fill=color.to_string() />
+            <path d=path stroke=color.to_string() stroke-width="2" fill="none" />
             {label
                 .map(|text| {
+                    let pos = text_pos();
                     view! {
                         <text
-                            x=move || text_pos().0
-                            y=move || text_pos().1
+                            x=pos.x
+                            y=pos.y
                             text-anchor="middle"
                             dominant-baseline="middle"
                             fill="black"
@@ -325,4 +376,3 @@ pub fn Region(
         </>
     }
 }
-*/
