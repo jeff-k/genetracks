@@ -109,12 +109,20 @@ pub fn Region(
             }
             ElemStyle::Right => {
                 let peak = Point {
-                    x: end_x + (10.0 * track.scale),
+                    x: end_x, // + (10.0 * track.scale),
                     y: y + (track.height / 2.0),
                 };
+
+                let end_bottom = Point {
+                    x: end_x - 10.0,
+                    y: y + track.height,
+                };
+
+                let bar_end = end_x - 10.0;
+
                 format!(
                     "M {base_top} \
-                    H {end_x} \
+                    H {bar_end} \
                     L {peak} \
                     L {end_bottom} \
                     H {start_x} \
@@ -123,17 +131,25 @@ pub fn Region(
             }
             ElemStyle::Left => {
                 let peak = Point {
-                    x: start_x - (10.0 * track.scale),
+                    x: start_x, // - (10.0 * track.scale),
                     y: y + (track.height / 2.0),
                 };
+
+                let base_start = Point {
+                    x: start_x + 10.0,
+                    y: y + track.height,
+                };
+
+                let bar_start = start_x + 10.0;
+                let base_y = base_start.y;
+
                 format!(
-                    "M {base_top} \
+                    "M {bar_start},{y} \
                     H {end_x} \
-                    V {} \
-                    H {end_x} \
+                    V {base_y} \
+                    H {bar_start} \
                     L {peak} \
                     Z",
-                    end_bottom.y
                 )
             }
             _ => format!(""),
@@ -141,13 +157,13 @@ pub fn Region(
     });
 
     view! {
-        <path d=path stroke="black" stroke-width="1" fill="none" />
+        <path d=path stroke-width="1" fill=color.to_string() />
         <text
             x=move || text_pos().x
             y=move || text_pos().y
             text-anchor="middle"
             dominant-baseline="middle"
-            fill=color.to_string()
+            fill="black".to_string()
             font-size="smaller"
             font-family="monospace"
         >
@@ -294,7 +310,7 @@ pub fn Bar(
             ElemStyle::Left => {
                 // "<---|" bar
                 let peak = Point {
-                    x: start_x - (10.0 * track.scale),
+                    x: start_x, // - (10.0 * track.scale),
                     y: center_y,
                 };
                 format!(
@@ -305,12 +321,12 @@ pub fn Bar(
                     H {} \
                     M {},{} \
                     L {},{}",
-                    start_x,
-                    top_y, // Start peak top
+                    start_x + (10.0), // * track.scale),
+                    top_y,            // Start peak top
                     peak.x,
-                    peak.y, // Peak point
-                    start_x,
-                    bottom_y, // Start peak bottom
+                    peak.y,           // Peak point
+                    start_x + (10.0), // * track.scale),
+                    bottom_y,         // Start peak bottom
                     start_x,
                     center_y, // Horizontal line
                     end_x,
@@ -323,7 +339,7 @@ pub fn Bar(
             ElemStyle::Right => {
                 // "|--->" bar
                 let peak = Point {
-                    x: end_x + (10.0 * track.scale),
+                    x: end_x, // + (10.0 * track.scale),
                     y: center_y,
                 };
                 format!(
@@ -341,12 +357,12 @@ pub fn Bar(
                     start_x,
                     center_y, // Horizontal line
                     end_x,
-                    end_x,
-                    top_y, // End peak top
+                    end_x - (10.0), // * track.scale),
+                    top_y,          // End peak top
                     peak.x,
-                    peak.y, // Peak point
-                    end_x,
-                    bottom_y // End peak bottom
+                    peak.y,         // Peak point
+                    end_x - (10.0), // * track.scale),
+                    bottom_y        // End peak bottom
                 )
             }
             _ => format!(""),
