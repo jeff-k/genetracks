@@ -1,7 +1,7 @@
 pub use core::fmt;
 pub mod circular;
 pub mod elements;
-pub mod linear;
+mod render;
 
 pub use elements::{ElemStyle, ElementData, TrackData};
 

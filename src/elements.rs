@@ -15,19 +15,19 @@ pub struct Dims {
 pub enum ElemStyle {
     Left,
     Right,
-    Bar,
-    Line,
+    //    Bar,
+    //    Line,
     #[default]
-    Rect,
-    Tick,
-    Spacer,
+    None,
+    //    Tick,
+    //    Spacer,
 }
 
 #[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Colour {
+    #[default]
     Black,
     White,
-    #[default]
     Lightgrey,
     Lightblue,
     Salmon,

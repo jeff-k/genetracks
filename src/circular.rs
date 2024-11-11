@@ -1,4 +1,5 @@
 pub use crate::elements::{Colour, ElemStyle, ElementData, TrackData};
+use crate::render::{CircularCoords, Layout, LinearCoords, RegionStyle};
 use crate::Point;
 use core::f64::consts::PI;
 use leptos::*;
@@ -10,15 +11,7 @@ struct FigCx {
     base_radius: f64,
     track_spacing: f64,
     track_height: f64,
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-struct TrackCx {
-    length: f64,
-    center: Point,
-    radius: f64,
-    track_spacing: f64,
-    track_height: f64,
+    //    layout: Layout,
 }
 
 #[component]
@@ -29,6 +22,7 @@ pub fn Figure(#[prop(into)] length: Signal<u32>, children: Children) -> impl Int
         base_radius: 300.0,
         track_spacing: 10.0,
         track_height: 12.0,
+        //layout: Layout::Circular,
     });
     provide_context(cx);
 
@@ -44,13 +38,12 @@ pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
 
     let track_radius = create_memo(move |_| {
         let fig = cx();
-        TrackCx {
+        Layout::Circular(CircularCoords {
             length: fig.length,
-            center: fig.center,
             radius: fig.base_radius + (index as f64 * fig.track_spacing),
-            track_spacing: fig.track_spacing,
-            track_height: fig.track_height,
-        }
+            height: fig.track_height,
+            center: fig.center,
+        })
     });
 
     provide_context(track_radius);
@@ -66,121 +59,17 @@ pub fn Bar(
     #[prop(optional)] color: Colour,
     #[prop(optional)] style: ElemStyle,
 ) -> impl IntoView {
-    let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
+    let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
 
     let start = start as f64;
     let end = end as f64;
 
-    let text_pos = create_memo(move |_| {
-        let track = parent();
-
-        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
-        let mid_angle = (start_angle + end_angle) / 2.0;
-
-        let x = track.center.x + track.radius * mid_angle.cos();
-        let y = track.center.y + track.radius * mid_angle.sin();
-
-        (x, y)
-    });
-
     let path = create_memo(move |_| {
         let track = parent();
-
-        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
-
-        let inner_radius = track.radius - track.track_height / 2.0;
-        let outer_radius = track.radius + track.track_height / 2.0;
-        let center = track.radius;
-
-        let mk_point = |radius: f64, angle: f64| Point {
-            x: track.center.x + radius * angle.cos(),
-            y: track.center.y + radius * angle.sin(),
-        };
-
-        let (base_start_angle, base_end_angle) = match style {
-            ElemStyle::Left => (start_angle + 0.02, end_angle),
-            ElemStyle::Right => (start_angle, end_angle - 0.02),
-            _ => (start_angle, end_angle),
-        };
-
-        let start_outer = mk_point(outer_radius, base_start_angle);
-
-        let end_outer = mk_point(outer_radius, base_end_angle);
-
-        let start_inner = mk_point(inner_radius, base_start_angle);
-
-        let end_inner = mk_point(inner_radius, base_end_angle);
-
-        let start_center = mk_point(center, start_angle);
-
-        let end_center = mk_point(center, end_angle);
-
-        let peak = match style {
-            ElemStyle::Left => mk_point(center, start_angle),
-            ElemStyle::Right => mk_point(center, end_angle),
-            _ => Point { x: 0.0, y: 0.0 },
-        };
-
-        let large_arc_flag = if end_angle - start_angle <= PI {
-            "0"
-        } else {
-            "1"
-        };
-
-        match style {
-            ElemStyle::Rect => format!(
-                "M {start_outer} \
-            L {start_inner} \
-            M {start_center} \
-            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-            M {end_outer} \
-            L {end_inner}"
-            ),
-            ElemStyle::Left => format!(
-                "M {start_outer} \
-                L {peak} \
-                L {start_inner} \
-                M {start_center} \
-                A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-                M {end_outer} \
-                L {end_inner}"
-            ),
-            ElemStyle::Right => format!(
-                "M {start_outer} \
-                L {start_inner} \
-                M {start_center} \
-                A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-                M {end_outer} \
-                L {peak} \
-                L {end_inner}"
-            ),
-            _ => format!(""),
-        }
+        track.draw(start, end, RegionStyle::Bar, style)
     });
 
-    view! {
-        <>
-            <path d=path stroke=color.to_string() stroke_width="2" fill="none" />
-            {label
-                .map(|text| {
-                    view! {
-                        <text
-                            x=move || text_pos().0
-                            y=move || text_pos().1
-                            text-anchor="middle"
-                            dominant-baseline="middle"
-                            fill="black"
-                            font-size="smaller"
-                            font-family="monospace"
-                        >
-                            {text}
-                        </text>
-                    }
-                })}
-        </>
-    }
+    view! { <path d=path stroke=color.to_string() stroke_width="2" fill="none" /> }
 }
 
 #[component]
@@ -189,25 +78,19 @@ pub fn Label(
     #[prop(optional)] label: String,
     #[prop(optional)] color: Colour,
 ) -> impl IntoView {
-    let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
+    let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
 
     let pos = pos as f64;
 
     let text_pos = create_memo(move |_| {
         let track = parent();
-
-        let mid_angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
-
-        let x = track.center.x + track.radius * mid_angle.cos();
-        let y = track.center.y + track.radius * mid_angle.sin();
-
-        (x, y)
+        track.label(pos)
     });
 
     view! {
         <text
-            x=move || text_pos().0
-            y=move || text_pos().1
+            x=move || text_pos().x
+            y=move || text_pos().y
             text-anchor="middle"
             dominant-baseline="middle"
             fill=color.to_string()
@@ -221,62 +104,34 @@ pub fn Label(
 
 #[component]
 pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> impl IntoView {
-    let parent = use_context::<Memo<TrackCx>>().expect("must have track as parent");
+    let parent = use_context::<Memo<Layout>>().expect("must have track as parent");
 
     let pos = pos as f64;
-
-    let text_pos = create_memo(move |_| {
-        let track = parent();
-
-        let angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
-        let text_radius = track.radius + track.track_height + 50.0;
-
-        let x = track.center.x + text_radius * angle.cos();
-        let y = track.center.y + text_radius * angle.sin();
-
-        (x, y)
-    });
 
     let path = create_memo(move |_| {
         let track = parent();
 
-        let angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
+        /*
+                let angle = (pos / track.length) * 2.0 * PI - PI / 2.0;
 
-        let inner_radius = track.radius - track.track_height / 2.0;
-        let outer_radius = track.radius + track.track_height + 40.0;
+                let inner_radius = track.radius - track.track_height / 2.0;
+                let outer_radius = track.radius + track.track_height + 40.0;
 
-        let mk_point = |radius: f64, angle: f64| Point {
-            x: track.center.x + radius * angle.cos(),
-            y: track.center.y + radius * angle.sin(),
-        };
+                let mk_point = |radius: f64, angle: f64| Point {
+                    x: track.center.x + radius * angle.cos(),
+                    y: track.center.y + radius * angle.sin(),
+                };
 
-        let inner = mk_point(inner_radius, angle);
+                let inner = mk_point(inner_radius, angle);
 
-        let outer = mk_point(outer_radius, angle);
-
-        format!("M {inner} L {outer}")
+                let outer = mk_point(outer_radius, angle);
+        */
+        format!("M 0.0 L 0.0")
     });
 
     view! {
         <g>
             <path d=path stroke="black" stroke-width="1" fill="none" />
-
-            {label
-                .map(|text| {
-                    view! {
-                        <text
-                            x=move || text_pos().0
-                            y=move || text_pos().1
-                            text-anchor="middle"
-                            dominant-baseline="middle"
-                            fill="black"
-                            font-size="smaller"
-                            font-family="monospace"
-                        >
-                            {text}
-                        </text>
-                    }
-                })}
 
         </g>
     }
@@ -291,116 +146,24 @@ pub fn Region(
     #[prop(optional)] color: Colour,
 ) -> impl IntoView {
     //    let cx = use_context::<ReadSignal<FigCx>>().expect("Region must be descendent of Figure");
-    let parent = use_context::<Memo<TrackCx>>().expect("Region must be child of Track");
+    let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
 
     let start = start as f64;
     let end = end as f64;
 
     let text_pos = create_memo(move |_| {
         let track = parent();
-
-        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
-        let mid_angle = (start_angle + end_angle) / 2.0;
-
-        let x = track.center.x + track.radius * mid_angle.cos();
-        let y = track.center.y + track.radius * mid_angle.sin();
-
-        (x, y)
+        track.label(start)
     });
 
     let path = create_memo(move |_| {
         let track = parent();
-        //let radius = parent();
-
-        let start_angle = (start / track.length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (end / track.length) * 2.0 * PI - PI / 2.0;
-
-        let inner_radius = track.radius - track.track_height / 2.0;
-        let outer_radius = track.radius + track.track_height / 2.0;
-
-        let center_radius = track.radius;
-
-        let mk_point = |radius: f64, angle: f64| Point {
-            x: track.center.x + radius * angle.cos(),
-            y: track.center.y + radius * angle.sin(),
-        };
-
-        let (base_start_angle, base_end_angle) = match style {
-            ElemStyle::Left => (start_angle + 0.03, end_angle),
-            ElemStyle::Right => (start_angle, end_angle - 0.03),
-            _ => (start_angle, end_angle),
-        };
-
-        let start_outer = mk_point(outer_radius, base_start_angle);
-
-        let end_outer = mk_point(outer_radius, base_end_angle);
-
-        let start_inner = mk_point(inner_radius, base_start_angle);
-
-        let end_inner = mk_point(inner_radius, base_end_angle);
-
-        let large_arc_flag = if end_angle - start_angle <= PI {
-            "0"
-        } else {
-            "1"
-        };
-
-        let peak = match style {
-            ElemStyle::Left => mk_point(center_radius, start_angle),
-            ElemStyle::Right => mk_point(center_radius, end_angle),
-            _ => Point { x: 0.0, y: 0.0 },
-        };
-
-        match style {
-            ElemStyle::Rect => {
-                format!("M {start_outer} A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} L {end_inner} A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} Z")
-            }
-            ElemStyle::Left => {
-                format!(
-                    "M {start_outer} \
-            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
-            L {end_inner} \
-            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
-            L {peak} \
-            Z"
-                )
-            }
-            ElemStyle::Right => {
-                format!(
-                    "M {start_outer} \
-            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
-            L {peak} \
-            L {end_inner} \
-            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
-            Z"
-                )
-            }
-            _ => {
-                format!("")
-            }
-        }
+        track.draw(start, end, RegionStyle::Full, style)
     });
 
     view! {
         <>
             <path d=path fill=color.to_string() />
-            {label
-                .map(|text| {
-                    view! {
-                        <text
-                            x=move || text_pos().0
-                            y=move || text_pos().1
-                            text-anchor="middle"
-                            dominant-baseline="middle"
-                            fill="black"
-                            font-size="smaller"
-                            font-family="monospace"
-                        >
-                            {text}
-                        </text>
-                    }
-                })}
         </>
     }
 }
