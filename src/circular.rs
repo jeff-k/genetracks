@@ -75,8 +75,8 @@ pub fn Bar(
 #[component]
 pub fn Label(
     #[prop(into)] pos: u32,
-    #[prop(optional)] label: String,
-    #[prop(optional)] color: Colour,
+    #[prop(optional)] color: Option<Colour>,
+    children: Children,
 ) -> impl IntoView {
     let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
 
@@ -93,11 +93,11 @@ pub fn Label(
             y=move || text_pos().y
             text-anchor="middle"
             dominant-baseline="middle"
-            fill=color.to_string()
+            fill=color.unwrap_or(Colour::Black).to_string()
             font-size="smaller"
             font-family="monospace"
         >
-            {label}
+            {children()}
         </text>
     }
 }
@@ -132,7 +132,6 @@ pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> 
     view! {
         <g>
             <path d=path stroke="black" stroke-width="1" fill="none" />
-
         </g>
     }
 }

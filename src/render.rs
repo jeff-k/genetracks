@@ -106,60 +106,66 @@ impl Layout {
                     (RegionStyle::Bar, ElemStyle::None) => {
                         format!(
                             "M {start_outer} \
-            L {start_inner} \
-            M {start_center} \
-            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-            M {end_outer} \
-            L {end_inner}"
+                            L {start_inner} \
+                            M {start_center} \
+                            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
+                            M {end_outer} \
+                            L {end_inner}"
                         )
                     }
 
                     (RegionStyle::Bar, ElemStyle::Left) => {
                         format!(
                             "M {start_outer} \
-                L {peak} \
-                L {start_inner} \
-                M {start_center} \
-                A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-                M {end_outer} \
-                L {end_inner}"
+                            L {peak} \
+                            L {start_inner} \
+                            M {start_center} \
+                            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
+                            M {end_outer} \
+                            L {end_inner}"
                         )
                     }
                     (RegionStyle::Bar, ElemStyle::Right) => {
                         format!(
                             "M {start_outer} \
-                L {start_inner} \
-                M {start_center} \
-                A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-                M {end_outer} \
-                L {peak} \
-                L {end_inner}"
+                            L {start_inner} \
+                            M {start_center} \
+                            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
+                            M {end_outer} \
+                            L {peak} \
+                            L {end_inner}"
                         )
                     } //self::circular(coords) => view! { <g></g> },
 
                     (RegionStyle::Full, ElemStyle::None) => {
-                        format!("M {start_outer} A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} L {end_inner} A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} Z")
+                        format!(
+                            "M {start_outer} \
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
+                            L {end_inner} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
+                            Z"
+                        )
                     }
 
                     (RegionStyle::Full, ElemStyle::Left) => {
                         format!(
                             "M {start_outer} \
-            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
-            L {end_inner} \
-            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
-            L {peak} \
-            Z"
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
+                            L {end_inner} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
+                            L {peak} \
+                            Z"
                         )
                     }
 
                     (RegionStyle::Full, ElemStyle::Right) => {
                         format!(
                             "M {start_outer} \
-            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
-            L {peak} \
-            L {end_inner} \
-            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
-            Z"
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
+                            L {peak} \
+                            L {end_inner} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
+                            Z"
                         )
                     }
                 }
@@ -202,66 +208,66 @@ impl Layout {
                     (RegionStyle::Bar, ElemStyle::None) => {
                         format!(
                             "M {start_x},{top_y} \
-                    L {start_x},{bottom_y} \
-                    M {start_x},{center_y} \
-                    H {end_x} \
-                    M {end_x},{top_y} \
-                    L {end_x},{bottom_y}"
+                            L {start_x},{bottom_y} \
+                            M {start_x},{center_y} \
+                            H {end_x} \
+                            M {end_x},{top_y} \
+                            L {end_x},{bottom_y}"
                         )
                     }
 
                     (RegionStyle::Bar, ElemStyle::Left) => {
                         format!(
                             "M {start_x_plus},{top_y} \
-                    L {peak_x} {peak_y} \
-                    L {start_x_plus},{bottom_y} \
-                    M {start_x},{center_y} \
-                    H {end_x} \
-                    M {end_x},{top_y} \
-                    L {end_x},{bottom_y}"
+                            L {peak_x} {peak_y} \
+                            L {start_x_plus},{bottom_y} \
+                            M {start_x},{center_y} \
+                            H {end_x} \
+                            M {end_x},{top_y} \
+                            L {end_x},{bottom_y}"
                         )
                     }
                     (RegionStyle::Bar, ElemStyle::Right) => {
                         format!(
                             "M {start_x},{top_y} \
-                    L {start_x},{bottom_y} \
-                    M {start_x},{center_y} \
-                    H {end_x} \
-                    M {end_x_minus},{top_y} \
-                    L {peak_x} {peak_y} \
-                    L {end_x_minus},{bottom_y}"
+                            L {start_x},{bottom_y} \
+                            M {start_x},{center_y} \
+                            H {end_x} \
+                            M {end_x_minus},{top_y} \
+                            L {peak_x} {peak_y} \
+                            L {end_x_minus},{bottom_y}"
                         )
                     }
 
                     (RegionStyle::Full, ElemStyle::None) => {
                         format!(
                             "M {base_top} \
-                    H {end_x} \
-                    V {base_bottom_y} \
-                    H {start_x} \
-                    Z"
+                            H {end_x} \
+                            V {base_bottom_y} \
+                            H {start_x} \
+                            Z"
                         )
                     }
 
                     (RegionStyle::Full, ElemStyle::Left) => {
                         format!(
                             "M {bar_start},{y} \
-                    H {end_x} \
-                    V {base_y} \
-                    H {bar_start} \
-                    L {peak} \
-                    Z",
+                            H {end_x} \
+                            V {base_y} \
+                            H {bar_start} \
+                            L {peak} \
+                            Z",
                         )
                     }
 
                     (RegionStyle::Full, ElemStyle::Right) => {
                         format!(
                             "M {base_top} \
-                    H {bar_end} \
-                    L {peak} \
-                    L {end_bottom} \
-                    H {start_x} \
-                    Z"
+                            H {bar_end} \
+                            L {peak} \
+                            L {end_bottom} \
+                            H {start_x} \
+                            Z"
                         )
                     }
                 }
