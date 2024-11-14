@@ -60,38 +60,27 @@ impl Layout {
                 let start_angle = (start / length) * 2.0 * PI - PI / 2.0;
                 let end_angle = (end / length) * 2.0 * PI - PI / 2.0;
 
-                let inner_radius = radius - height / 2.0;
-                let outer_radius = radius + height / 2.0;
-                //let center = radius;
+                let inner_radius = radius - height;
+                let mid_radius = radius - (height / 2.0);
+                let outer_radius = radius;
 
                 let mk_point = |radius: f64, angle: f64| Point {
                     x: center.x + radius * angle.cos(),
                     y: center.y + radius * angle.sin(),
                 };
 
-                let (base_start_angle, base_end_angle) = match decoration {
-                    ElemStyle::Left => (start_angle + 0.02, end_angle),
-                    ElemStyle::Right => (start_angle, end_angle - 0.02),
-                    _ => (start_angle, end_angle),
-                };
+                let start_top = mk_point(outer_radius, start_angle);
+                let start_mid = mk_point(mid_radius, start_angle);
+                let start_bottom = mk_point(inner_radius, start_angle);
 
-                let start_outer = mk_point(outer_radius, base_start_angle);
+                let end_top = mk_point(outer_radius, end_angle);
+                let end_mid = mk_point(mid_radius, end_angle);
+                let end_bottom = mk_point(inner_radius, end_angle);
 
-                let end_outer = mk_point(outer_radius, base_end_angle);
-
-                let start_inner = mk_point(inner_radius, base_start_angle);
-
-                let end_inner = mk_point(inner_radius, base_end_angle);
-
-                let start_center = mk_point(radius, start_angle);
-
-                let end_center = mk_point(radius, end_angle);
-
-                let peak = match decoration {
-                    ElemStyle::Left => mk_point(radius, start_angle),
-                    ElemStyle::Right => mk_point(radius, end_angle),
-                    _ => Point { x: 0.0, y: 0.0 },
-                };
+                let start_base_top = mk_point(outer_radius, start_angle + 0.02);
+                let start_base_bottom = mk_point(inner_radius, start_angle + 0.02);
+                let end_base_top = mk_point(outer_radius, end_angle - 0.02);
+                let end_base_bottom = mk_point(inner_radius, end_angle - 0.02);
 
                 let large_arc_flag = if end_angle - start_angle <= PI {
                     "0"
@@ -99,72 +88,71 @@ impl Layout {
                     "1"
                 };
 
-                let outer_radius = 0.0;
-                let inner_radius = 0.0;
-
                 match (style, decoration) {
                     (RegionStyle::Bar, ElemStyle::None) => {
                         format!(
-                            "M {start_outer} \
-                            L {start_inner} \
-                            M {start_center} \
-                            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-                            M {end_outer} \
-                            L {end_inner}"
+                            "M {start_top} \
+                            L {start_bottom} \
+                            M {start_mid} \
+                            A {radius} {radius} 0 {large_arc_flag} 1 {end_mid} \
+                            M {end_top} \
+                            L {end_bottom}"
                         )
                     }
 
                     (RegionStyle::Bar, ElemStyle::Left) => {
                         format!(
-                            "M {start_outer} \
-                            L {peak} \
-                            L {start_inner} \
-                            M {start_center} \
-                            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-                            M {end_outer} \
-                            L {end_inner}"
+                            "M {start_base_top} \
+                            L {start_mid} \
+                            L {start_base_bottom} \
+                            M {start_mid} \
+                            A {radius} {radius} 0 {large_arc_flag} 1 {end_mid} \
+                            M {end_top} \
+                            L {end_bottom}"
                         )
                     }
                     (RegionStyle::Bar, ElemStyle::Right) => {
                         format!(
-                            "M {start_outer} \
-                            L {start_inner} \
-                            M {start_center} \
-                            A {center} {center} 0 {large_arc_flag} 1 {end_center} \
-                            M {end_outer} \
-                            L {peak} \
-                            L {end_inner}"
+                            "M {start_top} \
+                            L {start_bottom} \
+                            M {start_mid} \
+                            A {radius} {radius} 0 {large_arc_flag} 1 {end_mid} \
+                            M {end_base_top} \
+                            L {end_mid} \
+                            L {end_base_bottom}"
                         )
                     } //self::circular(coords) => view! { <g></g> },
 
                     (RegionStyle::Full, ElemStyle::None) => {
                         format!(
-                            "M {start_outer} \
-                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
-                            L {end_inner} \
-                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
+                            "M {start_top} \
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
+                            L {end_bottom} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
                             Z"
                         )
                     }
 
                     (RegionStyle::Full, ElemStyle::Left) => {
                         format!(
-                            "M {start_outer} \
-                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
-                            L {end_inner} \
-                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
-                            L {peak} \
+                            "M {start_mid} \
+                            L {start_base_top} \
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
+                            L {end_bottom} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_base_bottom} \
+                            L {start_mid} \
                             Z"
                         )
                     }
 
                     (RegionStyle::Full, ElemStyle::Right) => {
                         format!(
-                            "M {start_outer} \
-                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_outer} \
-                            L {peak} \
-                            L {end_inner} \
-                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_inner} \
+                            "M {start_top} \
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_base_top} \
+                            L {end_mid} \
+                            L {end_base_bottom} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
+                            L {start_top} \
                             Z"
                         )
                     }
@@ -180,93 +168,106 @@ impl Layout {
                 let end_x = (origin.x + end) * scale;
                 let y = origin.y;
 
-                let base_top = Point { x: start_x, y };
-                let base_bottom = Point {
+                let start_base_top = Point {
+                    x: start_x + 10.0,
+                    y,
+                };
+                let start_base_bottom = Point {
+                    x: start_x + 10.0,
+                    y: y + height,
+                };
+
+                let end_base_top = Point { x: end_x - 10.0, y };
+                let end_base_bottom = Point {
+                    x: end_x - 10.0,
+                    y: y + height,
+                };
+
+                let start_top = Point { x: start_x, y };
+                let start_mid = Point {
+                    x: start_x,
+                    y: y + (height / 2.0),
+                };
+                let start_bottom = Point {
                     x: start_x,
                     y: y + height,
                 };
+
                 let end_top = Point { x: end_x, y };
+                let end_mid = Point {
+                    x: end_x,
+                    y: y + (height / 2.0),
+                };
                 let end_bottom = Point {
                     x: end_x,
                     y: y + height,
                 };
 
-                let bottom_y = 0.0;
-                let top_y = 0.0;
-                let center_y = 0.0;
-                let peak_y = 0.0;
-                let peak_x = 0.0;
-                let start_x_plus = 0.0;
-                let end_x_minus = 0.0;
-                let base_bottom_y = 0.0;
-                let bar_end = 0.0;
-                let peak = 0.0;
-                let base_y = 0.0;
-                let bar_start = 0.0;
-
                 match (style, decoration) {
                     (RegionStyle::Bar, ElemStyle::None) => {
                         format!(
-                            "M {start_x},{top_y} \
-                            L {start_x},{bottom_y} \
-                            M {start_x},{center_y} \
-                            H {end_x} \
-                            M {end_x},{top_y} \
-                            L {end_x},{bottom_y}"
+                            "M {start_top} \
+                            L {start_bottom} \
+                            M {start_mid} \
+                            L {end_mid} \
+                            M {end_top} \
+                            L {end_bottom}"
                         )
                     }
 
                     (RegionStyle::Bar, ElemStyle::Left) => {
                         format!(
-                            "M {start_x_plus},{top_y} \
-                            L {peak_x} {peak_y} \
-                            L {start_x_plus},{bottom_y} \
-                            M {start_x},{center_y} \
-                            H {end_x} \
-                            M {end_x},{top_y} \
-                            L {end_x},{bottom_y}"
+                            "M {start_base_top} \
+                            L {start_mid} \
+                            L {start_base_bottom} \
+                            M {start_mid} \
+                            L {end_mid} \
+                            M {end_top} \
+                            L {end_bottom}"
                         )
                     }
                     (RegionStyle::Bar, ElemStyle::Right) => {
                         format!(
-                            "M {start_x},{top_y} \
-                            L {start_x},{bottom_y} \
-                            M {start_x},{center_y} \
-                            H {end_x} \
-                            M {end_x_minus},{top_y} \
-                            L {peak_x} {peak_y} \
-                            L {end_x_minus},{bottom_y}"
+                            "M {start_top} \
+                            L {start_bottom} \
+                            M {start_mid} \
+                            L {end_mid} \
+                            M {end_base_top} \
+                            L {end_mid} \
+                            L {end_base_bottom}"
                         )
                     }
 
                     (RegionStyle::Full, ElemStyle::None) => {
                         format!(
-                            "M {base_top} \
-                            H {end_x} \
-                            V {base_bottom_y} \
-                            H {start_x} \
+                            "M {start_top} \
+                            L {end_top} \
+                            L {end_bottom} \
+                            L {start_bottom} \
                             Z"
                         )
                     }
 
                     (RegionStyle::Full, ElemStyle::Left) => {
                         format!(
-                            "M {bar_start},{y} \
-                            H {end_x} \
-                            V {base_y} \
-                            H {bar_start} \
-                            L {peak} \
+                            "M {start_mid} \
+                            L {start_base_top} \
+                            L {end_top} \
+                            L {end_bottom} \
+                            L {start_base_bottom} \
+                            L {start_mid} \
                             Z",
                         )
                     }
 
                     (RegionStyle::Full, ElemStyle::Right) => {
                         format!(
-                            "M {base_top} \
-                            H {bar_end} \
-                            L {peak} \
-                            L {end_bottom} \
-                            H {start_x} \
+                            "M {start_top} \
+                            L {end_base_top} \
+                            L {end_mid} \
+                            L {end_base_bottom} \
+                            L {start_bottom} \
+                            L {start_top} \
                             Z"
                         )
                     }
