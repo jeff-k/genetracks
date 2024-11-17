@@ -1,5 +1,5 @@
 pub use core::fmt;
-pub mod circular;
+pub mod components;
 pub mod elements;
 mod render;
 

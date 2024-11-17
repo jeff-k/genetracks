@@ -30,23 +30,74 @@ pub enum RegionStyle {
 }
 
 impl Layout {
-    pub fn label(self, pos: f64) -> Point {
+    pub fn map_pos(self, pos: f64) -> Point {
         match self {
             Self::Circular(CircularCoords {
                 length,
                 radius,
-                height: _,
+                height,
                 center,
             }) => {
-                let start_angle = (pos / length) * 2.0 * PI - PI / 2.0;
-                let end_angle = (pos / length) * 2.0 * PI - PI / 2.0;
-                let mid_angle = (start_angle + end_angle) / 2.0;
+                let mid_angle = (pos / length) * 2.0 * PI - PI / 2.0;
+
+                let radius = radius - (height / 2.0);
 
                 let x = center.x + radius * mid_angle.cos();
                 let y = center.y + radius * mid_angle.sin();
                 Point { x, y }
             }
-            _ => Point { x: 0.0, y: 0.0 },
+            Self::Linear(LinearCoords {
+                origin,
+                scale,
+                height,
+            }) => {
+                let x = pos * scale;
+                let y = origin.y + (height / 2.0);
+                Point { x, y }
+            }
+        }
+    }
+    pub fn draw_tick(self, pos: f64) -> String {
+        match self {
+            Self::Circular(CircularCoords {
+                length,
+                radius,
+                height,
+                center,
+            }) => {
+                let mid_angle = (pos / length) * 2.0 * PI - PI / 2.0;
+                let outer_radius = radius;
+                let mid_radius = radius - (height / 2.0);
+
+                let start = Point {
+                    x: center.x + mid_radius * mid_angle.cos(),
+                    y: center.y + mid_radius * mid_angle.sin(),
+                };
+                let end = Point {
+                    x: center.x + outer_radius * mid_angle.cos(),
+                    y: center.y + outer_radius * mid_angle.sin(),
+                };
+
+                format!("M {start} L {end}")
+            }
+
+            Self::Linear(LinearCoords {
+                origin,
+                scale,
+                height,
+            }) => {
+                let start = Point {
+                    x: pos * scale,
+                    y: origin.y + (height / 2.0),
+                };
+
+                let end = Point {
+                    x: pos * scale,
+                    y: origin.y,
+                };
+
+                format!("M {start} L {end}")
+            }
         }
     }
     pub fn draw(self, start: f64, end: f64, style: RegionStyle, decoration: ElemStyle) -> String {

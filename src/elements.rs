@@ -25,9 +25,9 @@ pub enum ElemStyle {
 
 #[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum Colour {
-    #[default]
     Black,
     White,
+    #[default]
     Lightgrey,
     Lightblue,
     Salmon,
