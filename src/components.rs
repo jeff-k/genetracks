@@ -6,6 +6,7 @@ use leptos::*;
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct FigCx {
     length: f64,
+    width: f64,
     center: Point,
     base_radius: f64,
     track_spacing: f64,
@@ -17,13 +18,20 @@ struct FigCx {
 #[component]
 pub fn Figure(
     #[prop(into)] length: Signal<u32>,
-    children: Children,
+    #[prop(into)] width: Signal<u32>,
+    #[prop(into)] start: Signal<u32>,
+    #[prop(into)] end: Signal<u32>,
     #[prop(default = false)] circular: bool,
+    children: Children,
 ) -> impl IntoView {
     let cx = create_memo(move |_| FigCx {
         length: length() as f64,
-        center: Point { x: 400.0, y: 400.0 },
-        base_radius: 300.0,
+        width: width() as f64,
+        center: Point {
+            x: width() as f64 / 2.0,
+            y: width() as f64 / 2.0,
+        },
+        base_radius: width() as f64 / 2.0,
         track_spacing: 10.0,
         track_height: 12.0,
         circular,
@@ -31,9 +39,33 @@ pub fn Figure(
     });
     provide_context(cx);
 
+    let scale = move || width() as f64 / length() as f64;
+
+    //    let height = move || 12.0 * (&children()).nodes.len() as f64;
+    let height = move || {
+        if circular {
+            width()
+        } else {
+            60
+        }
+    };
+
     view! {
         // {move || format!("len {}", length())}
-        <svg viewBox="0 0 800 200">{children()}</svg>
+        <svg
+            width=move || format!("{}px", width())
+            height=move || format!("{}px", height())
+            viewBox=move || {
+                format!(
+                    "{} 0 {} {}",
+                    start() as f64 * scale(),
+                    (end() - start()) as f64 * scale(),
+                    height(),
+                )
+            }
+        >
+            {children()}
+        </svg>
     }
 }
 
@@ -47,7 +79,7 @@ pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
         if fig.circular {
             Layout::Circular(CircularCoords {
                 length: fig.length,
-                radius: fig.base_radius + (index as f64 * fig.track_spacing),
+                radius: fig.base_radius - (index as f64 * fig.track_spacing),
                 height: fig.track_height,
                 center: fig.center,
             })
@@ -60,7 +92,7 @@ pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
                     x: 0.0,
                     y: fig.track_height * index as f64,
                 },
-                scale: fig.length / 800.0,
+                scale: fig.width / fig.length,
                 height: fig.track_height,
             })
         }
