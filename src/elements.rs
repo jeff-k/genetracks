@@ -38,6 +38,7 @@ pub enum Colour {
     DarkOrchid,
     GoldenRod,
     White,
+    LemonChiffon,
     #[default]
     LightGrey,
     LightGreen,
