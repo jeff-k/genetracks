@@ -1,5 +1,5 @@
 pub use crate::elements::{Colour, ElemStyle, ElementData, TrackData};
-use crate::render::{CircularCoords, Layout, LinearCoords, RegionStyle};
+use crate::render::{draw_sector, CircularCoords, Layout, LinearCoords, RegionStyle};
 use crate::Point;
 use leptos::*;
 
@@ -12,6 +12,8 @@ struct FigCx {
     track_spacing: f64,
     track_height: f64,
     circular: bool,
+    start: f64,
+    end: f64,
     //    layout: Layout,
 }
 
@@ -35,13 +37,13 @@ pub fn Figure(
         track_spacing: 10.0,
         track_height: 12.0,
         circular,
-        //layout: Layout::Circular,
+        start: start() as f64,
+        end: end() as f64,
     });
     provide_context(cx);
 
-    let scale = move || width() as f64 / length() as f64;
+    let scale = move || (width() as f64 / (end() - start()) as f64);
 
-    //    let height = move || 12.0 * (&children()).nodes.len() as f64;
     let height = move || {
         if circular {
             width()
@@ -51,22 +53,51 @@ pub fn Figure(
     };
 
     view! {
-        // {move || format!("len {}", length())}
         <svg
             width=move || format!("{}px", width())
             height=move || format!("{}px", height())
             viewBox=move || {
-                format!(
-                    "{} 0 {} {}",
-                    start() as f64 * scale(),
-                    (end() - start()) as f64 * scale(),
-                    height(),
-                )
+                if circular {
+                    format!("0 0 {} {}", width(), height())
+                } else {
+                    format!("{} 0 {} {}", start() as f64 * scale(), width() as f64, height())
+                }
             }
         >
             {children()}
         </svg>
     }
+}
+
+#[component]
+pub fn Sector(
+    #[prop(into)] start: Signal<u32>,
+    #[prop(into)] end: Signal<u32>,
+    top: i32,
+    bottom: i32,
+    #[prop(default = Colour::LightGrey)] color: Colour,
+) -> impl IntoView {
+    let cx = use_context::<Memo<FigCx>>().expect("Sector must be descendent of Figure");
+
+    let path = create_memo(move |_| {
+        let fig = cx();
+
+        if fig.circular {
+            let start = start() as f64;
+            let end = end() as f64;
+
+            let length = fig.length;
+            let origin = fig.center;
+
+            let outer_radius = fig.base_radius - (top as f64 * fig.track_spacing);
+            let inner_radius = fig.base_radius - (bottom as f64 * fig.track_spacing);
+
+            draw_sector(origin, length, start, end, outer_radius, inner_radius)
+        } else {
+            format!("")
+        }
+    });
+    view! { <path d=path fill=color.to_string() /> }
 }
 
 #[component]
@@ -92,7 +123,7 @@ pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
                     x: 0.0,
                     y: fig.track_height * index as f64,
                 },
-                scale: fig.width / fig.length,
+                scale: fig.width / (fig.end - fig.start),
                 height: fig.track_height,
             })
         }
@@ -119,13 +150,13 @@ pub fn Bar(
     });
 
     view! {
-        <>
+        <g>
             <path d=path stroke=color.to_string() stroke_width="2" fill="none" />
             {label
                 .map(|text| {
                     view! { <Label pos=(start + end) / 2>{text}</Label> }
                 })}
-        </>
+        </g>
     }
 }
 

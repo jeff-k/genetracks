@@ -29,6 +29,52 @@ pub enum RegionStyle {
     Full,
 }
 
+pub fn draw_sector(
+    origin: Point,
+    length: f64,
+    start: f64,
+    end: f64,
+    outer_radius: f64,
+    inner_radius: f64,
+) -> String {
+    let start_angle = (start / length) * 2.0 * PI - PI / 2.0;
+    let end_angle = (end / length) * 2.0 * PI - PI / 2.0;
+
+    let start_top = Point {
+        x: origin.x + outer_radius * start_angle.cos(),
+        y: origin.y + outer_radius * start_angle.sin(),
+    };
+
+    let end_top = Point {
+        x: origin.x + outer_radius * end_angle.cos(),
+        y: origin.y + outer_radius * end_angle.sin(),
+    };
+
+    let start_bottom = Point {
+        x: origin.x + inner_radius * start_angle.cos(),
+        y: origin.y + inner_radius * start_angle.sin(),
+    };
+
+    let end_bottom = Point {
+        x: origin.x + inner_radius * end_angle.cos(),
+        y: origin.y + inner_radius * end_angle.sin(),
+    };
+
+    let large_arc_flag = if end_angle - start_angle <= PI {
+        "0"
+    } else {
+        "1"
+    };
+
+    format!(
+        "M {start_top} \
+        A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
+        L {end_bottom} \
+        A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
+        Z"
+    )
+}
+
 impl Layout {
     pub fn map_pos(self, pos: f64) -> Point {
         match self {
