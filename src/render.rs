@@ -198,26 +198,46 @@ impl Layout {
                     }
 
                     (RegionStyle::Bar, ElemStyle::Left) => {
-                        format!(
-                            "M {start_base_top} \
+                        if end_angle - start_angle <= 0.02 {
+                            format!(
+                                "M {start_base_top} \
+                            L {start_mid} \
+                            L {start_base_bottom} \
+                            M {start_mid} \
+                            A {radius} {radius} 0 {large_arc_flag} 1 {end_mid}"
+                            )
+                        } else {
+                            format!(
+                                "M {start_base_top} \
                             L {start_mid} \
                             L {start_base_bottom} \
                             M {start_mid} \
                             A {radius} {radius} 0 {large_arc_flag} 1 {end_mid} \
                             M {end_top} \
                             L {end_bottom}"
-                        )
+                            )
+                        }
                     }
                     (RegionStyle::Bar, ElemStyle::Right) => {
-                        format!(
-                            "M {start_top} \
+                        if end_angle - start_angle <= 0.02 {
+                            format!(
+                                "M {start_mid} \
+                            A {radius} {radius} 0 {large_arc_flag} 1 {end_mid} \
+                            M {end_base_top} \
+                            L {end_mid} \
+                            L {end_base_bottom}"
+                            )
+                        } else {
+                            format!(
+                                "M {start_top} \
                             L {start_bottom} \
                             M {start_mid} \
                             A {radius} {radius} 0 {large_arc_flag} 1 {end_mid} \
                             M {end_base_top} \
                             L {end_mid} \
                             L {end_base_bottom}"
-                        )
+                            )
+                        }
                     } //self::circular(coords) => view! { <g></g> },
 
                     (RegionStyle::Full, ElemStyle::None) => {
@@ -231,7 +251,16 @@ impl Layout {
                     }
 
                     (RegionStyle::Full, ElemStyle::Left) => {
-                        format!(
+                        if end_angle - start_angle <= 0.02 {
+                            format!(
+                            "M {start_mid} \
+                            L {start_base_top} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_base_bottom} \
+                            L {start_mid} \
+                            Z"
+                            )
+                        } else {
+                            format!(
                             "M {start_mid} \
                             L {start_base_top} \
                             A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
@@ -240,18 +269,29 @@ impl Layout {
                             L {start_mid} \
                             Z"
                         )
+                        }
                     }
 
                     (RegionStyle::Full, ElemStyle::Right) => {
-                        format!(
-                            "M {start_top} \
+                        if end_angle - start_angle <= 0.02 {
+                            format!(
+                                "M {end_mid} \
+                                L {end_base_top}
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_base_bottom} \
+                            L {end_mid} \
+                            Z"
+                            )
+                        } else {
+                            format!(
+                                "M {start_top} \
                             A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_base_top} \
                             L {end_mid} \
                             L {end_base_bottom} \
                             A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
                             L {start_top} \
                             Z"
-                        )
+                            )
+                        }
                     }
                 }
             }
@@ -313,26 +353,46 @@ impl Layout {
                     }
 
                     (RegionStyle::Bar, ElemStyle::Left) => {
-                        format!(
-                            "M {start_base_top} \
+                        if (end - start) * scale <= 10.0 {
+                            format!(
+                                "M {start_base_top} \
+                            L {start_mid} \
+                            L {start_base_bottom} \
+                            M {start_mid} \
+                            L {end_mid} "
+                            )
+                        } else {
+                            format!(
+                                "M {start_base_top} \
                             L {start_mid} \
                             L {start_base_bottom} \
                             M {start_mid} \
                             L {end_mid} \
                             M {end_top} \
                             L {end_bottom}"
-                        )
+                            )
+                        }
                     }
                     (RegionStyle::Bar, ElemStyle::Right) => {
-                        format!(
-                            "M {start_top} \
+                        if (end - start) * scale <= 10.0 {
+                            format!(
+                                "M {start_mid} \
+                            L {end_mid} \
+                            M {end_base_top} \
+                            L {end_mid} \
+                            L {end_base_bottom}"
+                            )
+                        } else {
+                            format!(
+                                "M {start_top} \
                             L {start_bottom} \
                             M {start_mid} \
                             L {end_mid} \
                             M {end_base_top} \
                             L {end_mid} \
                             L {end_base_bottom}"
-                        )
+                            )
+                        }
                     }
 
                     (RegionStyle::Full, ElemStyle::None) => {
@@ -346,27 +406,47 @@ impl Layout {
                     }
 
                     (RegionStyle::Full, ElemStyle::Left) => {
-                        format!(
-                            "M {start_mid} \
+                        if (end - start) * scale <= 10.0 {
+                            format!(
+                                "M {start_mid} \
+                            L {start_base_top} \
+                            L {start_base_bottom} \
+                            L {start_mid} \
+                            Z",
+                            )
+                        } else {
+                            format!(
+                                "M {start_mid} \
                             L {start_base_top} \
                             L {end_top} \
                             L {end_bottom} \
                             L {start_base_bottom} \
                             L {start_mid} \
                             Z",
-                        )
+                            )
+                        }
                     }
 
                     (RegionStyle::Full, ElemStyle::Right) => {
-                        format!(
-                            "M {start_top} \
+                        if (end - start) * scale <= 10.0 {
+                            format!(
+                                "M {end_base_top} \
+                            L {end_mid} \
+                            L {end_base_bottom} \
+                            L {end_base_top} \
+                            Z"
+                            )
+                        } else {
+                            format!(
+                                "M {start_top} \
                             L {end_base_top} \
                             L {end_mid} \
                             L {end_base_bottom} \
                             L {start_bottom} \
                             L {start_top} \
                             Z"
-                        )
+                            )
+                        }
                     }
                 }
             }
