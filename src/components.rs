@@ -21,28 +21,34 @@ struct FigCx {
 pub fn Figure(
     #[prop(into)] length: Signal<u32>,
     #[prop(into)] width: Signal<u32>,
-    #[prop(into)] start: Signal<u32>,
-    #[prop(into)] end: Signal<u32>,
+    #[prop(into)] view_range: Signal<(u32, u32)>,
     #[prop(default = false)] circular: bool,
     children: Children,
 ) -> impl IntoView {
-    let cx = create_memo(move |_| FigCx {
-        length: length() as f64,
-        width: width() as f64,
-        center: Point {
-            x: width() as f64 / 2.0,
-            y: width() as f64 / 2.0,
-        },
-        base_radius: width() as f64 / 2.0,
-        track_spacing: 10.0,
-        track_height: 12.0,
-        circular,
-        start: start() as f64,
-        end: end() as f64,
+    let cx = create_memo(move |_| {
+        let (start, end) = view_range();
+        //        logging::log!("updating figure context: {} {} {}", start, end, width());
+        FigCx {
+            length: length() as f64,
+            width: width() as f64,
+            center: Point {
+                x: width() as f64 / 2.0,
+                y: width() as f64 / 2.0,
+            },
+            base_radius: width() as f64 / 2.0,
+            track_spacing: 10.0,
+            track_height: 12.0,
+            circular,
+            start: start as f64,
+            end: end as f64,
+        }
     });
     provide_context(cx);
 
-    let scale = move || (width() as f64 / (end() - start()) as f64);
+    let scale = move || {
+        let (start, end) = view_range();
+        width() as f64 / (end - start) as f64
+    };
 
     let height = move || {
         if circular {
@@ -60,7 +66,8 @@ pub fn Figure(
                 if circular {
                     format!("0 0 {} {}", width(), height())
                 } else {
-                    format!("{} 0 {} {}", start() as f64 * scale(), width() as f64, height())
+                    let (start, _) = view_range();
+                    format!("{} 0 {} {}", start as f64 * scale(), width() as f64, height())
                 }
             }
         >
@@ -71,8 +78,7 @@ pub fn Figure(
 
 #[component]
 pub fn Sector(
-    #[prop(into)] start: Signal<u32>,
-    #[prop(into)] end: Signal<u32>,
+    #[prop(into)] range: Signal<(u32, u32)>,
     top: i32,
     bottom: i32,
     #[prop(default = Colour::LightGrey)] color: Colour,
@@ -81,10 +87,10 @@ pub fn Sector(
 
     let path = create_memo(move |_| {
         let fig = cx();
-
+        let (start, end) = range();
         if fig.circular {
-            let start = start() as f64;
-            let end = end() as f64;
+            let start = start as f64;
+            let end = end as f64;
 
             let length = fig.length;
             let origin = fig.center;
