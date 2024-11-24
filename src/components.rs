@@ -23,7 +23,7 @@ pub fn Figure(
     #[prop(into)] width: Signal<u32>,
     #[prop(into)] view_range: Signal<(u32, u32)>,
     #[prop(default = false)] circular: bool,
-    children: Children,
+    children: ChildrenFn,
 ) -> impl IntoView {
     let cx = create_memo(move |_| {
         let (start, end) = view_range();
@@ -43,7 +43,6 @@ pub fn Figure(
             end: end as f64,
         }
     });
-    provide_context(cx);
 
     let scale = move || {
         let (start, end) = view_range();
@@ -59,20 +58,25 @@ pub fn Figure(
     };
 
     view! {
-        <svg
-            width=move || format!("{}px", width())
-            height=move || format!("{}px", height())
-            viewBox=move || {
-                if circular {
-                    format!("0 0 {} {}", width(), height())
-                } else {
-                    let (start, _) = view_range();
-                    format!("{} 0 {} {}", start as f64 * scale(), width() as f64, height())
-                }
+        {move || {
+            provide_context(cx);
+            view! {
+                <svg
+                    width=move || format!("{}px", width())
+                    height=move || format!("{}px", height())
+                    viewBox=move || {
+                        if circular {
+                            format!("0 0 {} {}", width(), height())
+                        } else {
+                            let (start, _) = view_range();
+                            format!("{} 0 {} {}", start as f64 * scale(), width() as f64, height())
+                        }
+                    }
+                >
+                    {children()}
+                </svg>
             }
-        >
-            {children()}
-        </svg>
+        }}
     }
 }
 
