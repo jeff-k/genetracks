@@ -247,3 +247,40 @@ pub fn Region(
         </g>
     }
 }
+
+#[component]
+pub fn Ticks(
+    #[prop(into)] n: u32,
+    #[prop(into)] range: Signal<(u32, u32)>,
+    #[prop(default = false)] text: bool,
+) -> impl IntoView {
+    //    let ns: Vec<u32> = (0..=n).filter(|x| (x % 50) == 0).collect();
+    let ns: Memo<Vec<u32>> = create_memo(move |_| {
+        let (start, end) = range();
+        let m = ((end - start) / n).max(1);
+        //logging::log!("{m}");
+        (start..=end).filter(|x| (x % m) == 0).collect()
+    });
+
+    move || {
+        if !text {
+            view! {
+                {ns()
+                    .into_iter()
+                    .map(|n| {
+                        view! { <Tick pos=n /> }
+                    })
+                    .collect::<Vec<_>>()}
+            }
+        } else {
+            view! {
+                {ns()
+                    .into_iter()
+                    .map(|n| {
+                        view! { <Label pos=n>{format!("{n}")}</Label> }
+                    })
+                    .collect::<Vec<_>>()}
+            }
+        }
+    }
+}
