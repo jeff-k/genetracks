@@ -1,6 +1,7 @@
 use std::fmt;
 
 use serde::{Deserialize, Serialize};
+use strum::EnumString;
 //use serde_json::Result;
 
 #[derive(Copy, Clone, Debug)]
@@ -23,7 +24,7 @@ pub enum ElemStyle {
     //    Spacer,
 }
 
-#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize, EnumString)]
 pub enum Colour {
     Black,
     Blue,
@@ -59,11 +60,12 @@ pub enum Colour {
     RoyalBlue,
     SeaGreen,
     Tomato,
-    Mediumaquamarine,
-    Firebrick,
-    Slateblue,
-    Steelblue,
+    MediumAquamarine,
+    FireBrick,
+    SlateBlue,
+    SteelBlue,
     Violet,
+    Yellow,
 }
 
 /*

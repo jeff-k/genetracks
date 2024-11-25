@@ -53,7 +53,8 @@ pub fn Figure(
         if circular {
             width()
         } else {
-            60
+            //12 * children().iter().collect().len() as u32
+            84
         }
     };
 
@@ -111,7 +112,7 @@ pub fn Sector(
 }
 
 #[component]
-pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
+pub fn Track(#[prop(into)] index: i32, children: ChildrenFn) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Track must be descendent of Figure");
 
     let track_radius = create_memo(move |_| {
@@ -139,9 +140,12 @@ pub fn Track(#[prop(into)] index: i32, children: Children) -> impl IntoView {
         }
     });
 
-    provide_context(track_radius);
-
-    view! { <g>{children()}</g> }
+    view! {
+        {move || {
+            provide_context(track_radius);
+            view! { <g>{children()}</g> }
+        }}
+    }
 }
 
 #[component]
