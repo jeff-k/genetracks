@@ -1,3 +1,6 @@
+#![warn(clippy::pedantic)]
+#![allow(clippy::must_use_candidate)]
+
 pub use core::fmt;
 pub mod components;
 pub mod elements;

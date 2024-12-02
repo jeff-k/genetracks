@@ -1,7 +1,8 @@
 pub use crate::elements::{Colour, ElemStyle, ElementData, TrackData};
 use crate::render::{draw_sector, CircularCoords, Layout, LinearCoords, RegionStyle};
 use crate::Point;
-use leptos::*;
+use leptos::either::Either;
+use leptos::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct FigCx {
@@ -25,28 +26,32 @@ pub fn Figure(
     #[prop(default = false)] circular: bool,
     children: ChildrenFn,
 ) -> impl IntoView {
-    let cx = create_memo(move |_| {
+    let cx = Memo::new(move |_| {
         let (start, end) = view_range();
         //        logging::log!("updating figure context: {} {} {}", start, end, width());
+
+        let length = f64::from(length());
+        let width = f64::from(width());
+
         FigCx {
-            length: length() as f64,
-            width: width() as f64,
+            length,
+            width,
             center: Point {
-                x: width() as f64 / 2.0,
-                y: width() as f64 / 2.0,
+                x: width / 2.0,
+                y: width / 2.0,
             },
-            base_radius: width() as f64 / 2.0,
+            base_radius: width / 2.0,
             track_spacing: 10.0,
             track_height: 12.0,
             circular,
-            start: start as f64,
-            end: end as f64,
+            start: f64::from(start),
+            end: f64::from(end),
         }
     });
 
     let scale = move || {
         let (start, end) = view_range();
-        width() as f64 / (end - start) as f64
+        f64::from(width()) / f64::from(end - start)
     };
 
     let height = move || {
@@ -70,7 +75,8 @@ pub fn Figure(
                             format!("0 0 {} {}", width(), height())
                         } else {
                             let (start, _) = view_range();
-                            format!("{} 0 {} {}", start as f64 * scale(), width() as f64, height())
+                            let start = f64::from(start);
+                            format!("{} 0 {} {}", start * scale(), width(), height())
                         }
                     }
                 >
@@ -90,22 +96,24 @@ pub fn Sector(
 ) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Sector must be descendent of Figure");
 
-    let path = create_memo(move |_| {
+    let path = Memo::new(move |_| {
         let fig = cx();
         let (start, end) = range();
         if fig.circular {
-            let start = start as f64;
-            let end = end as f64;
+            let start = f64::from(start);
+            let end = f64::from(end);
+            let top = f64::from(top);
+            let bottom = f64::from(bottom);
 
             let length = fig.length;
             let origin = fig.center;
 
-            let outer_radius = fig.base_radius - (top as f64 * fig.track_spacing);
-            let inner_radius = fig.base_radius - (bottom as f64 * fig.track_spacing);
+            let outer_radius = fig.base_radius - (top * fig.track_spacing);
+            let inner_radius = fig.base_radius - (bottom * fig.track_spacing);
 
             draw_sector(origin, length, start, end, outer_radius, inner_radius)
         } else {
-            format!("")
+            String::new()
         }
     });
     view! { <path d=path fill=color.to_string() /> }
@@ -115,13 +123,13 @@ pub fn Sector(
 pub fn Track(#[prop(into)] index: i32, children: ChildrenFn) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Track must be descendent of Figure");
 
-    let track_radius = create_memo(move |_| {
+    let track_radius = Memo::new(move |_| {
         let fig = cx();
 
         if fig.circular {
             Layout::Circular(CircularCoords {
                 length: fig.length,
-                radius: fig.base_radius - (index as f64 * fig.track_spacing),
+                radius: fig.base_radius - (f64::from(index) * fig.track_spacing),
                 height: fig.track_height,
                 center: fig.center,
             })
@@ -132,7 +140,7 @@ pub fn Track(#[prop(into)] index: i32, children: ChildrenFn) -> impl IntoView {
             Layout::Linear(LinearCoords {
                 origin: Point {
                     x: 0.0,
-                    y: fig.track_height * index as f64,
+                    y: fig.track_height * f64::from(index),
                 },
                 scale: fig.width / (fig.end - fig.start),
                 height: fig.track_height,
@@ -158,9 +166,9 @@ pub fn Bar(
 ) -> impl IntoView {
     let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
 
-    let path = create_memo(move |_| {
+    let path = Memo::new(move |_| {
         let track = parent();
-        track.draw(start as f64, end as f64, RegionStyle::Bar, style)
+        track.draw(f64::from(start), f64::from(end), RegionStyle::Bar, style)
     });
 
     view! {
@@ -182,9 +190,9 @@ pub fn Label(
 ) -> impl IntoView {
     let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
 
-    let text_pos = create_memo(move |_| {
+    let text_pos = Memo::new(move |_| {
         let track = parent();
-        track.map_pos(pos as f64)
+        track.map_pos(f64::from(pos))
     });
 
     view! {
@@ -206,9 +214,9 @@ pub fn Label(
 pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> impl IntoView {
     let parent = use_context::<Memo<Layout>>().expect("must have track as parent");
 
-    let path = create_memo(move |_| {
+    let path = Memo::new(move |_| {
         let track = parent();
-        track.draw_tick(pos as f64)
+        track.draw_tick(f64::from(pos))
     });
 
     view! {
@@ -232,9 +240,9 @@ pub fn Region(
 ) -> impl IntoView {
     let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
 
-    let path = create_memo(move |_| {
+    let path = Memo::new(move |_| {
         let track = parent();
-        track.draw(start as f64, end as f64, RegionStyle::Full, style)
+        track.draw(f64::from(start), f64::from(end), RegionStyle::Full, style)
     });
 
     view! {
@@ -255,7 +263,7 @@ pub fn Ticks(
     #[prop(default = false)] text: bool,
 ) -> impl IntoView {
     //    let ns: Vec<u32> = (0..=n).filter(|x| (x % 50) == 0).collect();
-    let ns: Memo<Vec<u32>> = create_memo(move |_| {
+    let ns: Memo<Vec<u32>> = Memo::new(move |_| {
         let (start, end) = range();
         let m = ((end - start) / n).max(1);
         //logging::log!("{m}");
@@ -263,24 +271,24 @@ pub fn Ticks(
     });
 
     move || {
-        if !text {
-            view! {
-                {ns()
-                    .into_iter()
-                    .map(|n| {
-                        view! { <Tick pos=n /> }
-                    })
-                    .collect::<Vec<_>>()}
-            }
-        } else {
-            view! {
+        if text {
+            Either::Left(view! {
                 {ns()
                     .into_iter()
                     .map(|n| {
                         view! { <Label pos=n>{format!("{n}")}</Label> }
                     })
                     .collect::<Vec<_>>()}
-            }
+            })
+        } else {
+            Either::Right(view! {
+                {ns()
+                    .into_iter()
+                    .map(|n| {
+                        view! { <Tick pos=n /> }
+                    })
+                    .collect::<Vec<_>>()}
+            })
         }
     }
 }
