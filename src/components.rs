@@ -90,8 +90,8 @@ pub fn Figure(
 #[component]
 pub fn Sector(
     #[prop(into)] range: Signal<(u32, u32)>,
-    top: i32,
-    bottom: i32,
+    top: u32,
+    bottom: u32,
     #[prop(default = Colour::LightGrey)] color: Colour,
 ) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Sector must be descendent of Figure");
@@ -120,7 +120,7 @@ pub fn Sector(
 }
 
 #[component]
-pub fn Track(#[prop(into)] index: i32, children: ChildrenFn) -> impl IntoView {
+pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Track must be descendent of Figure");
 
     let track_radius = Memo::new(move |_| {
