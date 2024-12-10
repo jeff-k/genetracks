@@ -1,6 +1,6 @@
 use std::fmt;
 
-use serde::{Deserialize, Serialize};
+//use serde::{Deserialize, Serialize};
 use strum::EnumString;
 //use serde_json::Result;
 
@@ -12,7 +12,7 @@ pub struct Dims {
     pub height: f64,
 }
 
-#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize)]
+#[derive(Default, Debug, Copy, Clone)]
 pub enum ElemStyle {
     Left,
     Right,
@@ -24,7 +24,7 @@ pub enum ElemStyle {
     //    Spacer,
 }
 
-#[derive(Default, Debug, Copy, Clone, Serialize, Deserialize, EnumString)]
+#[derive(Default, Debug, Copy, Clone, EnumString)]
 pub enum Colour {
     Black,
     Blue,
@@ -81,30 +81,32 @@ impl std::fmt::Display for Colour {
     }
 }
 
-#[derive(Serialize, Clone, Debug, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct ElementData {
-    #[serde(default)]
+    //    #[serde(default)]
     pub style: ElemStyle,
-    #[serde(default)]
+    //    #[serde(default)]
     pub label: Option<String>,
     pub start: f32,
     pub end: f32,
-    #[serde(default = "default_scale")]
+    //    #[serde(default = "default_scale")]
     pub scale: f32,
-    #[serde(default)]
+    //    #[serde(default)]
     pub colour: Colour,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub struct TrackData {
-    #[serde(default = "default_height")]
+    //    #[serde(default = "default_height")]
     pub height: f32,
     pub elements: Vec<ElementData>,
 }
 
+/*
 fn default_height() -> f32 {
     20.0
 }
 fn default_scale() -> f32 {
     1.0
 }
+*/

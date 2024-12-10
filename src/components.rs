@@ -1,83 +1,127 @@
 pub use crate::elements::{Colour, ElemStyle, ElementData, TrackData};
-use crate::render::{draw_sector, CircularCoords, Layout, LinearCoords, RegionStyle};
+
+use crate::render::{draw_highlight, draw_sector, CircularCoords, Layout, LinearCoords};
 use crate::Point;
 use leptos::either::Either;
+//use leptos::logging;
 use leptos::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-struct FigCx {
-    length: f64,
-    width: f64,
-    center: Point,
-    base_radius: f64,
-    track_spacing: f64,
-    track_height: f64,
-    circular: bool,
-    start: f64,
-    end: f64,
-    //    layout: Layout,
+pub(crate) struct FigCx {
+    pub(crate) length: f64,
+    pub(crate) width: f64,
+    pub(crate) height: f64,
+    pub(crate) track_height: f64,
+    pub(crate) view: (u32, u32),
+    pub(crate) center: Point,
+    pub(crate) scale: f64,
+    pub(crate) circular: bool,
 }
 
 #[component]
-pub fn Figure(
+pub fn Circular(
     #[prop(into)] length: Signal<u32>,
     #[prop(into)] width: Signal<u32>,
-    #[prop(into)] view_range: Signal<(u32, u32)>,
-    #[prop(default = false)] circular: bool,
     children: ChildrenFn,
 ) -> impl IntoView {
     let cx = Memo::new(move |_| {
-        let (start, end) = view_range();
-        //        logging::log!("updating figure context: {} {} {}", start, end, width());
-
         let length = f64::from(length());
         let width = f64::from(width());
 
         FigCx {
             length,
             width,
+            height: width,
+            track_height: 12.0,
+            view: (0, 0),
             center: Point {
                 x: width / 2.0,
                 y: width / 2.0,
             },
-            base_radius: width / 2.0,
-            track_spacing: 10.0,
-            track_height: 12.0,
-            circular,
-            start: f64::from(start),
-            end: f64::from(end),
+            scale: 1.0,
+            circular: true,
         }
     });
-
-    let scale = move || {
-        let (start, end) = view_range();
-        f64::from(width()) / f64::from(end - start)
-    };
-
-    let height = move || {
-        if circular {
-            width()
-        } else {
-            //12 * children().iter().collect().len() as u32
-            84
-        }
-    };
 
     view! {
         {move || {
             provide_context(cx);
+            let FigCx {
+                length: _,
+                width,
+                height,
+                center: _,
+                track_height: _,
+                view: _,
+                scale: _,
+                circular: _,
+            } = cx();
             view! {
                 <svg
-                    width=move || format!("{}px", width())
-                    height=move || format!("{}px", height())
+                    width=move || format!("{width}px")
+                    height=move || format!("{height}px")
+                    viewBox=move || { format!("0 0 {width} {height}") }
+                >
+                    {children()}
+                </svg>
+            }
+        }}
+    }
+}
+
+#[component]
+pub fn Figure(
+    #[prop(into)] length: Signal<u32>,
+    #[prop(into)] width: Signal<u32>,
+    #[prop(default = 5)] tracks: u32,
+    #[prop(default = 12.0)] track_height: f64,
+    #[prop(default = None)] view: Option<ReadSignal<(u32, u32)>>,
+    children: ChildrenFn,
+) -> impl IntoView {
+    //        logging::log!("updating figure context: {} {} {}", start, end, width());
+
+    let cx = Memo::new(move |_| {
+        let height = track_height * f64::from(tracks);
+        let u_len = length();
+        let length = f64::from(u_len);
+        let width = f64::from(width());
+        let (start, end) = match view {
+            Some(vr) => vr(),
+            None => (0, u_len),
+        };
+        let scale = width / f64::from(end - start);
+        FigCx {
+            length,
+            width,
+            height,
+            track_height,
+            view: (start, end),
+            center: Point { x: 0.0, y: 0.0 },
+            scale,
+            circular: false,
+        }
+    });
+
+    view! {
+        {move || {
+            provide_context(cx);
+            let FigCx {
+                length: _,
+                width,
+                height,
+                track_height: _,
+                view: (start, _),
+                scale,
+                center: _,
+                circular: _,
+            } = cx();
+            view! {
+                <svg
+                    width=move || format!("{width}px")
+                    height=move || format!("{height}px")
                     viewBox=move || {
-                        if circular {
-                            format!("0 0 {} {}", width(), height())
-                        } else {
-                            let (start, _) = view_range();
-                            let start = f64::from(start);
-                            format!("{} 0 {} {}", start * scale(), width(), height())
-                        }
+                        let start = f64::from(start) * scale;
+                        format!("{start} 0 {width} {height}")
                     }
                 >
                     {children()}
@@ -88,10 +132,11 @@ pub fn Figure(
 }
 
 #[component]
-pub fn Sector(
-    #[prop(into)] range: Signal<(u32, u32)>,
+pub fn Highlight(
     top: u32,
     bottom: u32,
+    #[prop(into)] range: Signal<(u32, u32)>,
+    #[prop(default = None)] bottom_range: Option<Signal<(u32, u32)>>,
     #[prop(default = Colour::LightGrey)] color: Colour,
 ) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Sector must be descendent of Figure");
@@ -99,7 +144,13 @@ pub fn Sector(
     let path = Memo::new(move |_| {
         let fig = cx();
         let (start, end) = range();
+        let (_b_start, _b_end) = match bottom_range {
+            Some(b_range) => b_range(),
+            None => (start, end),
+        };
+
         if fig.circular {
+            let radius = fig.width / 2.0;
             let start = f64::from(start);
             let end = f64::from(end);
             let top = f64::from(top);
@@ -108,14 +159,24 @@ pub fn Sector(
             let length = fig.length;
             let origin = fig.center;
 
-            let outer_radius = fig.base_radius - (top * fig.track_spacing);
-            let inner_radius = fig.base_radius - (bottom * fig.track_spacing);
+            let outer_radius = radius - (top * fig.track_height);
+            let inner_radius = radius - (bottom * fig.track_height);
 
             draw_sector(origin, length, start, end, outer_radius, inner_radius)
         } else {
-            String::new()
+            let top = f64::from(top) * fig.track_height;
+            let bottom = f64::from(bottom) * fig.track_height;
+            let (start, end) = range();
+
+            draw_highlight(
+                f64::from(start) * fig.scale,
+                f64::from(end) * fig.scale,
+                top,
+                bottom,
+            )
         }
     });
+
     view! { <path d=path fill=color.to_string() /> }
 }
 
@@ -123,34 +184,45 @@ pub fn Sector(
 pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Track must be descendent of Figure");
 
-    let track_radius = Memo::new(move |_| {
-        let fig = cx();
+    let FigCx {
+        width,
+        length,
+        height,
+        track_height,
+        view: _,
+        center,
+        scale,
+        circular,
+    } = cx();
 
-        if fig.circular {
-            Layout::Circular(CircularCoords {
-                length: fig.length,
-                radius: fig.base_radius - (f64::from(index) * fig.track_spacing),
-                height: fig.track_height,
-                center: fig.center,
-            })
+    let index = f64::from(index);
+
+    let (layout, set_layout) = signal({
+        if circular {
+            Box::new(CircularCoords {
+                length,
+                radius: (width / 2.0) - (index * track_height),
+                height: track_height,
+                center,
+            }) as Box<dyn Layout>
         } else {
-            /*
-             */
-
-            Layout::Linear(LinearCoords {
-                origin: Point {
-                    x: 0.0,
-                    y: fig.track_height * f64::from(index),
-                },
-                scale: fig.width / (fig.end - fig.start),
-                height: fig.track_height,
-            })
+            let y = height * index;
+            Box::new(LinearCoords {
+                origin: Point { x: 0.0, y },
+                scale,
+                height: track_height,
+            }) as Box<dyn Layout>
         }
+    });
+
+    Effect::new(move |_| {
+        let fig = cx();
+        set_layout.update(|l| l.update(&fig, index));
     });
 
     view! {
         {move || {
-            provide_context(track_radius);
+            provide_context(layout);
             view! { <g>{children()}</g> }
         }}
     }
@@ -164,16 +236,17 @@ pub fn Bar(
     #[prop(default = Colour::Black)] color: Colour,
     #[prop(optional)] style: ElemStyle,
 ) -> impl IntoView {
-    let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
-
-    let path = Memo::new(move |_| {
-        let track = parent();
-        track.draw(f64::from(start), f64::from(end), RegionStyle::Bar, style)
-    });
+    let layout =
+        use_context::<ReadSignal<Box<dyn Layout>>>().expect("Region must be child of Track");
 
     view! {
         <g>
-            <path d=path stroke=color.to_string() stroke_width="2" fill="none" />
+            <path
+                d=move || layout.with(|l| { l.draw_bar(start, end, style) })
+                stroke=color.to_string()
+                stroke_width="2"
+                fill="none"
+            />
             {label
                 .map(|text| {
                     view! { <Label pos=(start + end) / 2>{text}</Label> }
@@ -188,40 +261,40 @@ pub fn Label(
     #[prop(optional)] color: Option<Colour>,
     children: Children,
 ) -> impl IntoView {
-    let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
-
-    let text_pos = Memo::new(move |_| {
-        let track = parent();
-        track.map_pos(f64::from(pos))
-    });
-
-    view! {
-        <text
-            x=move || text_pos().x
-            y=move || text_pos().y
-            text-anchor="middle"
-            dominant-baseline="middle"
-            fill=color.unwrap_or(Colour::Black).to_string()
-            font-size="smaller"
-            font-family="monospace"
-        >
-            {children()}
-        </text>
-    }
+    //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
+    let layout =
+        use_context::<ReadSignal<Box<dyn Layout>>>().expect("Region must be child of Track");
+    layout.with(|l| {
+        let p = l.map_pos(pos);
+        view! {
+            <text
+                x=p.x
+                y=p.y
+                text-anchor="middle"
+                dominant-baseline="middle"
+                fill=color.unwrap_or(Colour::Black).to_string()
+                font-size="smaller"
+                font-family="monospace"
+            >
+                {children()}
+            </text>
+        }
+    })
 }
 
 #[component]
 pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> impl IntoView {
-    let parent = use_context::<Memo<Layout>>().expect("must have track as parent");
-
-    let path = Memo::new(move |_| {
-        let track = parent();
-        track.draw_tick(f64::from(pos))
-    });
-
+    //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
+    let layout =
+        use_context::<ReadSignal<Box<dyn Layout>>>().expect("Region must be child of Track");
     view! {
         <g>
-            <path d=path stroke="black" stroke-width="1" fill="none" />
+            <path
+                d=move || { layout.with(|l| l.draw_tick(pos)) }
+                stroke="black"
+                stroke-width="1"
+                fill="none"
+            />
             {label
                 .map(|text| {
                     view! { <Label pos=pos>{text}</Label> }
@@ -238,16 +311,16 @@ pub fn Region(
     #[prop(optional)] label: Option<String>,
     #[prop(optional)] color: Colour,
 ) -> impl IntoView {
-    let parent = use_context::<Memo<Layout>>().expect("Region must be child of Track");
+    //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
 
-    let path = Memo::new(move |_| {
-        let track = parent();
-        track.draw(f64::from(start), f64::from(end), RegionStyle::Full, style)
-    });
-
+    let layout =
+        use_context::<ReadSignal<Box<dyn Layout>>>().expect("Region must be child of Track");
     view! {
         <g>
-            <path d=path fill=color.to_string() />
+            <path
+                d=move || { layout.with(|l| l.draw_filled(start, end, style)) }
+                fill=color.to_string()
+            />
             {label
                 .map(|text| {
                     view! { <Label pos=(start + end) / 2>{text}</Label> }
