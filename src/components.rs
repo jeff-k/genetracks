@@ -365,3 +365,23 @@ pub fn Ticks(
         }
     }
 }
+
+#[component]
+pub fn Ribbon(
+    #[prop(into)] start: (u32, u32),
+    #[prop(into)] end: (u32, u32),
+    #[prop(default = Colour::OrangeRed)] color: Colour,
+    #[prop(default = 0.2)] opacity: f64,
+) -> impl IntoView {
+    let layout =
+        use_context::<ReadSignal<Box<dyn Layout>>>().expect("Ribbon must be child of Track");
+    view! {
+        <g>
+            <path
+                d=move || { layout.with(|l| l.draw_ribbon(start, end)) }
+                fill=color.to_string()
+                opacity=opacity.to_string()
+            />
+        </g>
+    }
+}

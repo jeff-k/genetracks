@@ -24,9 +24,13 @@ pub trait Layout: Sync + Send {
     fn draw_filled(&self, start: u32, end: u32, style: ElemStyle) -> String;
     fn draw_tick(&self, pos: u32) -> String;
     fn update(&mut self, cx: &FigCx, index: f64);
+    fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32)) -> String;
 }
 
 impl Layout for LinearCoords {
+    fn draw_ribbon(&self, _start: (u32, u32), _end: (u32, u32)) -> String {
+        String::new()
+    }
     fn update(&mut self, cx: &FigCx, index: f64) {
         let FigCx {
             width: _,
@@ -267,6 +271,59 @@ impl Layout for LinearCoords {
 }
 
 impl Layout for CircularCoords {
+    fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32)) -> String {
+        let (from_start, from_end) = end;
+        let (to_start, to_end) = start;
+
+        let from_start_angle = (f64::from(from_start) / self.length) * 2.0 * PI - PI / 2.0;
+        let from_end_angle = (f64::from(from_end) / self.length) * 2.0 * PI - PI / 2.0;
+        let to_start_angle = (f64::from(to_start) / self.length) * 2.0 * PI - PI / 2.0;
+        let to_end_angle = (f64::from(to_end) / self.length) * 2.0 * PI - PI / 2.0;
+
+        let mk_point = |radius: f64, angle: f64| Point {
+            x: self.center.x + radius * angle.cos(),
+            y: self.center.y + radius * angle.sin(),
+        };
+
+        let radius = self.radius;
+        let control = radius * 0.5;
+
+        let from_start_point = mk_point(radius, from_start_angle);
+
+        let from_end_point = mk_point(radius, from_end_angle);
+
+        let to_start_point = mk_point(radius, to_start_angle);
+
+        let to_end_point = mk_point(radius, to_end_angle);
+
+        let from_start_control = mk_point(control, from_start_angle);
+
+        let from_end_control = mk_point(control, from_end_angle);
+
+        let to_start_control = mk_point(control, to_start_angle);
+
+        let to_end_control = mk_point(control, to_end_angle);
+
+        let from_large_arc = if from_end_angle - from_start_angle > PI {
+            "1"
+        } else {
+            "0"
+        };
+        let to_large_arc = if to_end_angle - to_start_angle > PI {
+            "1"
+        } else {
+            "0"
+        };
+
+        format!(
+            "M {from_start_point} \
+        A {radius} {radius} 0 {from_large_arc} 1 {from_end_point} \
+        C {from_end_control} {to_start_control} {to_start_point} \
+        A {radius} {radius} 0 {to_large_arc} 1 {to_end_point} \
+        C {to_end_control} {from_start_control} {from_start_point} \
+        Z",
+        )
+    }
     fn update(&mut self, cx: &FigCx, index: f64) {
         let FigCx {
             width,
