@@ -90,6 +90,7 @@ pub fn Figure(
             None => (0, u_len),
         };
         let scale = width / f64::from(end - start);
+        //logging::log!("updating scale {scale}");
         FigCx {
             length,
             width,
@@ -139,7 +140,7 @@ pub fn Highlight(
     #[prop(default = None)] bottom_range: Option<Signal<(u32, u32)>>,
     #[prop(default = Colour::LightGrey)] color: Colour,
 ) -> impl IntoView {
-    let cx = use_context::<Memo<FigCx>>().expect("Sector must be descendent of Figure");
+    let cx = use_context::<Memo<FigCx>>().expect("Highlight must be descendent of Figure");
 
     let path = Memo::new(move |_| {
         let fig = cx();
@@ -187,7 +188,7 @@ pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
     let FigCx {
         width,
         length,
-        height,
+        height: _,
         track_height,
         view: _,
         center,
@@ -206,7 +207,7 @@ pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
                 center,
             }) as Box<dyn Layout>
         } else {
-            let y = height * index;
+            let y = track_height * index;
             Box::new(LinearCoords {
                 origin: Point { x: 0.0, y },
                 scale,
@@ -217,6 +218,7 @@ pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
 
     Effect::new(move |_| {
         let fig = cx();
+        //logging::log!("linear layout scale {}", fig.scale);
         set_layout.update(|l| l.update(&fig, index));
     });
 
@@ -266,6 +268,7 @@ pub fn Label(
         use_context::<ReadSignal<Box<dyn Layout>>>().expect("Region must be child of Track");
     layout.with(|l| {
         let p = l.map_pos(pos);
+        //logging::log!("printing to {} {}", p.x, p.y);
         view! {
             <text
                 x=p.x
@@ -370,18 +373,20 @@ pub fn Ticks(
 pub fn Ribbon(
     #[prop(into)] start: (u32, u32),
     #[prop(into)] end: (u32, u32),
+    #[prop(default = None)] target: Option<u32>,
     #[prop(default = Colour::OrangeRed)] color: Colour,
     #[prop(default = 0.2)] opacity: f64,
 ) -> impl IntoView {
     let layout =
         use_context::<ReadSignal<Box<dyn Layout>>>().expect("Ribbon must be child of Track");
     view! {
-        <g>
-            <path
-                d=move || { layout.with(|l| l.draw_ribbon(start, end)) }
-                fill=color.to_string()
-                opacity=opacity.to_string()
-            />
-        </g>
-    }
+            <g>
+    //      { logging::log!("updating figure context {:?} {:?}", start ,end) }
+                <path
+                    d=move || { layout.with(|l| l.draw_ribbon(start, end, target)) }
+                    fill=color.to_string()
+                    opacity=opacity.to_string()
+                />
+            </g>
+        }
 }
