@@ -24,12 +24,50 @@ pub trait Layout: Sync + Send {
     fn draw_filled(&self, start: u32, end: u32, style: ElemStyle) -> String;
     fn draw_tick(&self, pos: u32) -> String;
     fn update(&mut self, cx: &FigCx, index: f64);
-    fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32)) -> String;
+    fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32), target: Option<u32>) -> String;
 }
 
 impl Layout for LinearCoords {
-    fn draw_ribbon(&self, _start: (u32, u32), _end: (u32, u32)) -> String {
-        String::new()
+    fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32), target: Option<u32>) -> String {
+        let bottom = match target {
+            Some(track) => f64::from(track) * self.height,
+            None => self.height,
+        };
+        let y = self.origin.y;
+
+        let t_start = f64::from(start.0);
+        let t_end = f64::from(start.1);
+
+        let b_start = f64::from(end.0);
+        let b_end = f64::from(end.1);
+
+        let scale = self.scale;
+
+        let start_top = Point {
+            x: t_start * scale,
+            y,
+        };
+
+        let start_bottom = Point {
+            x: b_start * scale,
+            y: y + bottom,
+        };
+
+        let end_top = Point {
+            x: t_end * scale,
+            y,
+        };
+
+        let end_bottom = Point {
+            x: b_end * scale,
+            y: y + bottom,
+        };
+        format!(
+            "M {start_top} \
+                            L {start_bottom} \
+                            L {end_bottom} \
+                            L {end_top}" //                            M {end_top}"
+        )
     }
     fn update(&mut self, cx: &FigCx, index: f64) {
         let FigCx {
@@ -271,7 +309,7 @@ impl Layout for LinearCoords {
 }
 
 impl Layout for CircularCoords {
-    fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32)) -> String {
+    fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32), _target: Option<u32>) -> String {
         let (from_start, from_end) = end;
         let (to_start, to_end) = start;
 
