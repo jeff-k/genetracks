@@ -4,7 +4,7 @@ use std::fmt;
 use strum::EnumString;
 //use serde_json::Result;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Dims {
     pub x: f64,
     pub y: f64,
@@ -12,7 +12,7 @@ pub struct Dims {
     pub height: f64,
 }
 
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub enum ElemStyle {
     Left,
     Right,
@@ -24,7 +24,7 @@ pub enum ElemStyle {
     //    Spacer,
 }
 
-#[derive(Default, Debug, Copy, Clone, EnumString)]
+#[derive(Default, Debug, Copy, Clone, EnumString, PartialEq)]
 pub enum Colour {
     Black,
     Blue,

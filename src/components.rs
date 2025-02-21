@@ -380,13 +380,13 @@ pub fn Ribbon(
     let layout =
         use_context::<ReadSignal<Box<dyn Layout>>>().expect("Ribbon must be child of Track");
     view! {
-            <g>
-    //      { logging::log!("updating figure context {:?} {:?}", start ,end) }
-                <path
-                    d=move || { layout.with(|l| l.draw_ribbon(start, end, target)) }
-                    fill=color.to_string()
-                    opacity=opacity.to_string()
-                />
-            </g>
-        }
+        <g>
+            // { logging::log!("updating figure context {:?} {:?}", start ,end) }
+            <path
+                d=move || { layout.with(|l| l.draw_ribbon(start, end, target)) }
+                fill=color.to_string()
+                opacity=opacity.to_string()
+            />
+        </g>
+    }
 }
