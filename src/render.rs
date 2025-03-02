@@ -1,6 +1,6 @@
-use crate::components::FigCx;
 use crate::ElemStyle;
 use crate::Point;
+use crate::components::FigCx;
 use core::f64::consts::PI;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -18,13 +18,58 @@ pub struct LinearCoords {
     pub height: f64,
 }
 
-pub trait Layout: Sync + Send {
+#[derive(PartialEq)]
+pub enum LayoutWrapper {
+    Linear(LinearCoords),
+    Circular(CircularCoords),
+}
+
+pub trait Layout: Sync + Send + PartialEq {
     fn map_pos(&self, pos: u32) -> Point;
     fn draw_bar(&self, start: u32, end: u32, style: ElemStyle) -> String;
     fn draw_filled(&self, start: u32, end: u32, style: ElemStyle) -> String;
     fn draw_tick(&self, pos: u32) -> String;
     fn update(&mut self, cx: &FigCx, index: f64);
     fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32), target: Option<u32>) -> String;
+}
+
+impl Layout for LayoutWrapper {
+    fn map_pos(&self, pos: u32) -> Point {
+        match self {
+            LayoutWrapper::Linear(l) => l.map_pos(pos),
+            LayoutWrapper::Circular(l) => l.map_pos(pos),
+        }
+    }
+    fn draw_bar(&self, start: u32, end: u32, style: ElemStyle) -> String {
+        match self {
+            LayoutWrapper::Linear(l) => l.draw_bar(start, end, style),
+            LayoutWrapper::Circular(l) => l.draw_bar(start, end, style),
+        }
+    }
+    fn draw_filled(&self, start: u32, end: u32, style: ElemStyle) -> String {
+        match self {
+            LayoutWrapper::Linear(l) => l.draw_filled(start, end, style),
+            LayoutWrapper::Circular(l) => l.draw_filled(start, end, style),
+        }
+    }
+    fn draw_tick(&self, pos: u32) -> String {
+        match self {
+            LayoutWrapper::Linear(l) => l.draw_tick(pos),
+            LayoutWrapper::Circular(l) => l.draw_tick(pos),
+        }
+    }
+    fn update(&mut self, cx: &FigCx, index: f64) {
+        match self {
+            LayoutWrapper::Linear(l) => l.update(cx, index),
+            LayoutWrapper::Circular(l) => l.update(cx, index),
+        }
+    }
+    fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32), target: Option<u32>) -> String {
+        match self {
+            LayoutWrapper::Linear(l) => l.draw_ribbon(start, end, target),
+            LayoutWrapper::Circular(l) => l.draw_ribbon(start, end, target),
+        }
+    }
 }
 
 impl Layout for LinearCoords {
@@ -531,22 +576,22 @@ impl Layout for CircularCoords {
             ElemStyle::Left => {
                 if end_angle - start_angle <= 0.02 {
                     format!(
-                            "M {start_mid} \
+                        "M {start_mid} \
                             L {start_base_top} \
                             A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_base_bottom} \
                             L {start_mid} \
                             Z"
-                            )
+                    )
                 } else {
                     format!(
-                            "M {start_mid} \
+                        "M {start_mid} \
                             L {start_base_top} \
                             A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
                             L {end_bottom} \
                             A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_base_bottom} \
                             L {start_mid} \
                             Z"
-                        )
+                    )
                 }
             }
 
