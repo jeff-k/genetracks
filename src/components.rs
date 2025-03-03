@@ -244,7 +244,7 @@ pub fn Label(
     children: Children,
 ) -> impl IntoView {
     //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
-    let layout = use_context::<Memo<LayoutWrapper>>().expect("Region must be child of Track");
+    let layout = use_context::<Memo<LayoutWrapper>>().expect("Label must be child of Track");
 
     let pos = Memo::new(move |_| layout.with(|l| l.map_pos(pos)));
     view! {
@@ -264,7 +264,7 @@ pub fn Label(
 
 #[component]
 pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> impl IntoView {
-    let layout = use_context::<Memo<LayoutWrapper>>().expect("Region must be child of Track");
+    let layout = use_context::<Memo<LayoutWrapper>>().expect("Tick must be child of Track");
     view! {
         <g>
             <path
@@ -283,8 +283,8 @@ pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> 
 
 #[component]
 pub fn Region(
-    #[prop(into)] start: u32,
-    #[prop(into)] end: u32,
+    #[prop(into)] start: Signal<u32>,
+    #[prop(into)] end: Signal<u32>,
     #[prop(optional)] style: ElemStyle,
     #[prop(optional)] label: Option<String>,
     #[prop(optional)] color: Colour,
@@ -295,13 +295,13 @@ pub fn Region(
     view! {
         <g>
             <path
-                d=move || { layout.with(|l| l.draw_filled(start, end, style)) }
+                d=move || { layout.with(|l| l.draw_filled(start(), end(), style)) }
                 fill=color.to_string()
             />
-            {label
-                .map(|text| {
-                    view! { <Label pos=(start + end) / 2>{text}</Label> }
-                })}
+            label.map(|text| {
+            {move || {
+                view! { <Label pos=(start() + end()) / 2>{text}</Label> }
+            }}})
         </g>
     }
 }
