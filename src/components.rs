@@ -9,15 +9,15 @@ use crate::render::{
 use leptos::prelude::*;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct FigCx {
-    pub(crate) length: f64,
-    pub(crate) width: f64,
-    pub(crate) height: f64,
-    pub(crate) track_height: f64,
-    pub(crate) view: (u32, u32),
-    pub(crate) center: Point,
-    pub(crate) scale: f64,
-    pub(crate) circular: bool,
+pub struct FigCx {
+    pub length: f64,
+    pub width: f64,
+    pub height: f64,
+    pub track_height: f64,
+    pub view: (u32, u32),
+    pub center: Point,
+    pub scale: f64,
+    pub circular: bool,
 }
 
 impl FigCx {
@@ -196,9 +196,11 @@ pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
                     center: fig.center,
                 })
             } else {
-                let y = fig.track_height * index;
                 LayoutWrapper::Linear(LinearCoords {
-                    origin: Point { x: 0.0, y },
+                    origin: Point {
+                        x: 0.0,
+                        y: index * fig.track_height,
+                    },
                     scale: fig.scale,
                     height: fig.track_height,
                 })
@@ -213,25 +215,25 @@ pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
 
 #[component]
 pub fn Bar(
-    #[prop(into)] start: u32,
-    #[prop(into)] end: u32,
+    #[prop(into)] start: Signal<u32>,
+    #[prop(into)] end: Signal<u32>,
     #[prop(optional)] label: Option<String>,
     #[prop(default = Colour::Black)] color: Colour,
     #[prop(optional)] style: ElemStyle,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Region must be child of Track");
-
+    let pos = Memo::new(move |_| u32::midpoint(start(), end()));
     view! {
         <g>
             <path
-                d=move || layout.with(|l| { l.draw_bar(start, end, style) })
+                d=move || layout.with(|l| { l.draw_bar(start(), end(), style) })
                 stroke=color.to_string()
                 stroke_width="2"
                 fill="none"
             />
             {label
                 .map(|text| {
-                    view! { <Label pos=(start + end) / 2>{text}</Label> }
+                    view! { <Label pos=pos>{text}</Label> }
                 })}
         </g>
     }
@@ -239,14 +241,14 @@ pub fn Bar(
 
 #[component]
 pub fn Label(
-    #[prop(into)] pos: u32,
+    #[prop(into)] pos: Signal<u32>,
     #[prop(optional)] color: Option<Colour>,
     children: Children,
 ) -> impl IntoView {
     //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Label must be child of Track");
 
-    let pos = Memo::new(move |_| layout.with(|l| l.map_pos(pos)));
+    let pos = Memo::new(move |_| layout.with(|l| l.map_pos(pos())));
     view! {
         <text
             x=move || pos.with(|p| p.x)
@@ -263,12 +265,16 @@ pub fn Label(
 }
 
 #[component]
-pub fn Tick(#[prop(into)] pos: u32, #[prop(optional)] label: Option<String>) -> impl IntoView {
+pub fn Tick(
+    #[prop(into)] pos: Signal<u32>,
+    #[prop(optional)] label: Option<String>,
+) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Tick must be child of Track");
+    let pos = Memo::new(move |_| pos());
     view! {
         <g>
             <path
-                d=move || { layout.with(|l| l.draw_tick(pos)) }
+                d=move || { layout.with(|l| l.draw_tick(pos())) }
                 stroke="black"
                 stroke-width="1"
                 fill="none"
@@ -292,6 +298,7 @@ pub fn Region(
     //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
 
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Region must be child of Track");
+    let label_pos = Memo::new(move |_| u32::midpoint(start(), end()));
     view! {
         <g>
             <path
@@ -299,9 +306,8 @@ pub fn Region(
                 fill=color.to_string()
             />
             label.map(|text| {
-            {move || {
-                view! { <Label pos=(start() + end()) / 2>{text}</Label> }
-            }}})
+                view! { <Label pos=label_pos>{text}</Label> }
+            })
         </g>
     }
 }
@@ -350,8 +356,8 @@ pub fn Ticks(
 
 #[component]
 pub fn Ribbon(
-    #[prop(into)] start: (u32, u32),
-    #[prop(into)] end: (u32, u32),
+    #[prop(into)] start: Signal<(u32, u32)>,
+    #[prop(into)] end: Signal<(u32, u32)>,
     #[prop(default = None)] target: Option<u32>,
     #[prop(default = Colour::OrangeRed)] color: Colour,
     #[prop(default = 0.2)] opacity: f64,
@@ -359,9 +365,8 @@ pub fn Ribbon(
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Ribbon must be child of Track");
     view! {
         <g>
-            // { logging::log!("updating figure context {:?} {:?}", start ,end) }
             <path
-                d=move || { layout.with(|l| l.draw_ribbon(start, end, target)) }
+                d=move || { layout.with(|l| l.draw_ribbon(start(), end(), target)) }
                 fill=color.to_string()
                 opacity=opacity.to_string()
             />
