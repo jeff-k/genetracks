@@ -7,6 +7,10 @@ use crate::render::{
 //use leptos::either::Either;
 //use leptos::logging;
 use leptos::prelude::*;
+use leptos::svg;
+use leptos::wasm_bindgen::closure::{Closure, WasmClosure};
+use leptos::wasm_bindgen::prelude::*;
+use leptos::web_sys::{ResizeObserver, ResizeObserverEntry};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FigCx {
@@ -44,12 +48,21 @@ impl FigCx {
 #[component]
 pub fn Circular(
     #[prop(into)] length: Signal<u32>,
-    #[prop(into)] width: Signal<u32>,
+    #[prop(into, optional)] width: Option<Signal<u32>>,
     children: ChildrenFn,
 ) -> impl IntoView {
+    let node_ref: NodeRef<svg::Svg> = NodeRef::new();
+
+    let (container_width, set_width) = signal(800u32);
+
+    let fig_width = match width {
+        Some(w) => w,
+        None => container_width.into(),
+    };
+
     let cx = Memo::new(move |_| {
         let length = f64::from(length());
-        let width = f64::from(width());
+        let width = f64::from(fig_width());
 
         FigCx {
             length,
@@ -67,12 +80,46 @@ pub fn Circular(
     });
     provide_context(cx);
 
+    Effect::new(move |_| {
+        if width.is_none() {
+            //logging::log!("creating width effect");
+            if let Some(elem) = node_ref.get() {
+                if let Some(parent) = elem.parent_element() {
+                    let rect = parent.get_bounding_client_rect();
+                    let w = rect.width() as u32;
+                    set_width.update(|s| *s = w);
+                    //logging::log!("inital: {:?}", rect.width());
+
+                    let set_width_c = set_width.clone();
+
+                    let cb = Closure::wrap(Box::new(
+                        move |es: Vec<ResizeObserverEntry>, _: ResizeObserver| {
+                            if let Some(e) = es.get(0) {
+                                let rect = e.content_rect();
+                                //logging::log!("{:?}", rect.width());
+                                set_width_c.update(|s| *s = rect.width() as u32);
+                            }
+                        },
+                    )
+                        as Box<dyn FnMut(Vec<ResizeObserverEntry>, ResizeObserver)>);
+
+                    let observer = ResizeObserver::new(cb.as_ref().unchecked_ref()).unwrap();
+
+                    observer.observe(&parent);
+
+                    // leaks memory?
+                    cb.forget();
+                }
+            }
+        }
+    });
+
     let width = Memo::new(move |_| cx().view_width());
     let height = Memo::new(move |_| cx().view_height());
-    let viewbox = Memo::new(move |_| cx().viewbox());
+    let viewBox = Memo::new(move |_| cx().viewbox());
 
     view! {
-        <svg width=width height=height viewBox=viewbox>
+        <svg node_ref=node_ref width=width height=height viewBox=viewBox>
             {children()}
         </svg>
     }
@@ -81,7 +128,7 @@ pub fn Circular(
 #[component]
 pub fn Figure(
     #[prop(into)] length: Signal<u32>,
-    #[prop(into)] width: Signal<u32>,
+    #[prop(into, optional)] width: Option<Signal<u32>>,
     #[prop(default = 5)] tracks: u32,
     #[prop(default = 12.0)] track_height: f64,
     #[prop(into, optional)] view: Option<Signal<(u32, u32)>>,
@@ -89,8 +136,17 @@ pub fn Figure(
 ) -> impl IntoView {
     //        logging::log!("updating figure context: {} {} {}", start, end, width());
 
+    let node_ref: NodeRef<svg::Svg> = NodeRef::new();
+
+    let (container_width, set_width) = signal(800u32);
+
+    let fig_width = match width {
+        Some(w) => w,
+        None => container_width.into(),
+    };
+
     let fig_length = Memo::new(move |_| f64::from(length()));
-    let fig_width = Memo::new(move |_| f64::from(width()));
+    let fig_width = Memo::new(move |_| f64::from(fig_width()));
     let viewbox = Memo::new(move |_| match view {
         Some(viewfn) => viewfn(),
         None => (0, length()),
@@ -115,6 +171,40 @@ pub fn Figure(
     });
     provide_context(cx);
 
+    Effect::new(move |_| {
+        if width.is_none() {
+            //logging::log!("creating width effect");
+            if let Some(elem) = node_ref.get() {
+                if let Some(parent) = elem.parent_element() {
+                    let rect = parent.get_bounding_client_rect();
+                    let w = rect.width() as u32;
+                    set_width.update(|s| *s = w);
+                    //logging::log!("inital: {:?}", rect.width());
+
+                    let set_width_c = set_width.clone();
+
+                    let cb = Closure::wrap(Box::new(
+                        move |es: Vec<ResizeObserverEntry>, _: ResizeObserver| {
+                            if let Some(e) = es.get(0) {
+                                let rect = e.content_rect();
+                                //logging::log!("{:?}", rect.width());
+                                set_width_c.update(|s| *s = rect.width() as u32);
+                            }
+                        },
+                    )
+                        as Box<dyn FnMut(Vec<ResizeObserverEntry>, ResizeObserver)>);
+
+                    let observer = ResizeObserver::new(cb.as_ref().unchecked_ref()).unwrap();
+
+                    observer.observe(&parent);
+
+                    // leaks memory?
+                    cb.forget();
+                }
+            }
+        }
+    });
+
     let svg_width = Memo::new(move |_| format!("{}px", fig_width()));
     let svg_viewbox = Memo::new(move |_| {
         let (start, _) = viewbox();
@@ -123,7 +213,7 @@ pub fn Figure(
     });
 
     view! {
-        <svg width=svg_width height=format!("{height}px") viewBox=svg_viewbox>
+        <svg node_ref=node_ref width=svg_width height=format!("{height}px") viewBox=svg_viewbox>
             {children()}
 
         </svg>

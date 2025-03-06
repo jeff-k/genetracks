@@ -9,6 +9,12 @@ edition = "2024"
 #serde_json = "1.0"
 
 leptos = { version = "0.7", features=["nightly", "csr"] }
+
+web-sys = { version = "0.3", features = [
+  "ResizeObserver",
+  "ResizeObserverEntry",
+  "DomRect"
+]}
 #console_error_panic_hook = "0.1.7"
 strum = { version = "0.27", features = ["derive"]}
 
