@@ -115,7 +115,7 @@ pub fn Circular(
     let viewBox = Memo::new(move |_| cx().viewbox());
 
     view! {
-        <svg node_ref=node_ref width height viewBox>
+        <svg node_ref=node_ref width=width height=height viewBox=viewBox>
             {children()}
         </svg>
     }
