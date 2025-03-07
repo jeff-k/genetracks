@@ -8,7 +8,7 @@ use crate::render::{
 //use leptos::logging;
 use leptos::prelude::*;
 use leptos::svg;
-use leptos::wasm_bindgen::closure::{Closure, WasmClosure};
+use leptos::wasm_bindgen::closure::Closure;
 use leptos::wasm_bindgen::prelude::*;
 use leptos::web_sys::{ResizeObserver, ResizeObserverEntry};
 
@@ -53,16 +53,16 @@ pub fn Circular(
 ) -> impl IntoView {
     let node_ref: NodeRef<svg::Svg> = NodeRef::new();
 
-    let (container_width, set_width) = signal(800u32);
+    let (container_width, set_width) = signal(800f64);
 
-    let fig_width = match width {
-        Some(w) => w,
-        None => container_width.into(),
+    let fig_width: Signal<f64> = match width {
+        Some(w) => Signal::derive(move || f64::from(w())),
+        None => Signal::from(container_width),
     };
 
     let cx = Memo::new(move |_| {
         let length = f64::from(length());
-        let width = f64::from(fig_width());
+        let width = fig_width();
 
         FigCx {
             length,
@@ -86,18 +86,14 @@ pub fn Circular(
             if let Some(elem) = node_ref.get() {
                 if let Some(parent) = elem.parent_element() {
                     let rect = parent.get_bounding_client_rect();
-                    let w = rect.width() as u32;
+                    let w = rect.width();
                     set_width.update(|s| *s = w);
-                    //logging::log!("inital: {:?}", rect.width());
-
-                    let set_width_c = set_width.clone();
 
                     let cb = Closure::wrap(Box::new(
                         move |es: Vec<ResizeObserverEntry>, _: ResizeObserver| {
-                            if let Some(e) = es.get(0) {
+                            if let Some(e) = es.first() {
                                 let rect = e.content_rect();
-                                //logging::log!("{:?}", rect.width());
-                                set_width_c.update(|s| *s = rect.width() as u32);
+                                set_width.update(|s| *s = rect.width());
                             }
                         },
                     )
@@ -119,7 +115,7 @@ pub fn Circular(
     let viewBox = Memo::new(move |_| cx().viewbox());
 
     view! {
-        <svg node_ref=node_ref width=width height=height viewBox=viewBox>
+        <svg node_ref=node_ref width height viewBox>
             {children()}
         </svg>
     }
@@ -138,15 +134,15 @@ pub fn Figure(
 
     let node_ref: NodeRef<svg::Svg> = NodeRef::new();
 
-    let (container_width, set_width) = signal(800u32);
+    let (container_width, set_width) = signal(800f64);
 
-    let fig_width = match width {
-        Some(w) => w,
-        None => container_width.into(),
+    let fig_width: Signal<f64> = match width {
+        Some(w) => Signal::derive(move || f64::from(w())),
+        None => Signal::from(container_width),
     };
 
     let fig_length = Memo::new(move |_| f64::from(length()));
-    let fig_width = Memo::new(move |_| f64::from(fig_width()));
+    //    let fig_width = Memo::new(move |_| fig_width());
     let viewbox = Memo::new(move |_| match view {
         Some(viewfn) => viewfn(),
         None => (0, length()),
@@ -177,18 +173,16 @@ pub fn Figure(
             if let Some(elem) = node_ref.get() {
                 if let Some(parent) = elem.parent_element() {
                     let rect = parent.get_bounding_client_rect();
-                    let w = rect.width() as u32;
+                    let w = rect.width();
                     set_width.update(|s| *s = w);
                     //logging::log!("inital: {:?}", rect.width());
 
-                    let set_width_c = set_width.clone();
-
                     let cb = Closure::wrap(Box::new(
                         move |es: Vec<ResizeObserverEntry>, _: ResizeObserver| {
-                            if let Some(e) = es.get(0) {
+                            if let Some(e) = es.first() {
                                 let rect = e.content_rect();
                                 //logging::log!("{:?}", rect.width());
-                                set_width_c.update(|s| *s = rect.width() as u32);
+                                set_width.update(|s| *s = rect.width());
                             }
                         },
                     )

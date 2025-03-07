@@ -1,6 +1,7 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::must_use_candidate)]
 #![allow(unused_variables)]
+#![allow(clippy::needless_pass_by_value)]
 
 pub use core::fmt;
 pub mod components;
