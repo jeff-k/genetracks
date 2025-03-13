@@ -6,6 +6,7 @@ use crate::render::{
 };
 //use leptos::either::Either;
 //use leptos::logging;
+use leptos::context::Provider;
 use leptos::prelude::*;
 use leptos::svg;
 use leptos::wasm_bindgen::closure::Closure;
@@ -78,7 +79,6 @@ pub fn Circular(
             circular: true,
         }
     });
-    provide_context(cx);
 
     Effect::new(move |_| {
         if width.is_none() {
@@ -116,7 +116,7 @@ pub fn Circular(
 
     view! {
         <svg node_ref=node_ref width=width height=height viewBox=viewBox>
-            {children()}
+            <Provider value=cx>{children()}</Provider>
         </svg>
     }
 }
@@ -165,7 +165,6 @@ pub fn Figure(
         scale: scale(),
         circular: false,
     });
-    provide_context(cx);
 
     Effect::new(move |_| {
         if width.is_none() {
@@ -208,8 +207,7 @@ pub fn Figure(
 
     view! {
         <svg node_ref=node_ref width=svg_width height=format!("{height}px") viewBox=svg_viewbox>
-            {children()}
-
+            <Provider value=cx>{children()}</Provider>
         </svg>
     }
 }
@@ -292,9 +290,11 @@ pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
         })
     });
 
-    provide_context(layout);
-
-    view! { <g>{children()}</g> }
+    view! {
+        <Provider value=layout>
+            <g>{children()}</g>
+        </Provider>
+    }
 }
 
 #[component]
@@ -417,8 +417,11 @@ pub fn Ticks(
                 each=move || ticks()
                 key=|pos| *pos
                 children=move |pos| {
-                    provide_context(layout);
-                    view! { <Label pos=pos>{pos}</Label> }
+                    view! {
+                        <Provider value=layout>
+                            <Label pos=pos>{pos}</Label>
+                        </Provider>
+                    }
                 }
             />
         }
@@ -429,8 +432,11 @@ pub fn Ticks(
                 each=move || ticks()
                 key=|pos| *pos
                 children=move |pos| {
-                    provide_context(layout);
-                    view! { <Tick pos=pos /> }
+                    view! {
+                        <Provider value=layout>
+                            <Tick pos=pos />
+                        </Provider>
+                    }
                 }
             />
         }
