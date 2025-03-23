@@ -30,13 +30,6 @@ impl FigCx {
         format!("0 0 {} {}", self.width, self.height)
     }
 
-    /*
-    fn viewbox_scaled(&self) -> String {
-        let start = f64::from(self.view.0) * self.scale;
-        format!("{} 0 {} {}", start, self.width, self.height)
-    }
-    */
-
     fn view_width(&self) -> String {
         format!("{}", self.width)
     }
@@ -50,7 +43,7 @@ impl FigCx {
 pub fn Circular(
     #[prop(into)] length: Signal<u32>,
     #[prop(into, optional)] width: Option<Signal<u32>>,
-    children: ChildrenFn,
+    #[prop(optional)] children: Option<ChildrenFn>,
 ) -> impl IntoView {
     let node_ref: NodeRef<svg::Svg> = NodeRef::new();
 
@@ -116,7 +109,7 @@ pub fn Circular(
 
     view! {
         <svg node_ref=node_ref width=width height=height viewBox=viewBox>
-            <Provider value=cx>{children()}</Provider>
+            <Provider value=cx>{children.map(|children_fn| children_fn())}</Provider>
         </svg>
     }
 }
@@ -128,7 +121,7 @@ pub fn Figure(
     #[prop(default = 5)] tracks: u32,
     #[prop(default = 12.0)] track_height: f64,
     #[prop(into, optional)] view: Option<Signal<(u32, u32)>>,
-    children: ChildrenFn,
+    #[prop(optional)] children: Option<ChildrenFn>,
 ) -> impl IntoView {
     //        logging::log!("updating figure context: {} {} {}", start, end, width());
 
@@ -168,19 +161,16 @@ pub fn Figure(
 
     Effect::new(move |_| {
         if width.is_none() {
-            //logging::log!("creating width effect");
             if let Some(elem) = node_ref.get() {
                 if let Some(parent) = elem.parent_element() {
                     let rect = parent.get_bounding_client_rect();
                     let w = rect.width();
                     set_width.update(|s| *s = w);
-                    //logging::log!("inital: {:?}", rect.width());
 
                     let cb = Closure::wrap(Box::new(
                         move |es: Vec<ResizeObserverEntry>, _: ResizeObserver| {
                             if let Some(e) = es.first() {
                                 let rect = e.content_rect();
-                                //logging::log!("{:?}", rect.width());
                                 set_width.update(|s| *s = rect.width());
                             }
                         },
@@ -207,28 +197,32 @@ pub fn Figure(
 
     view! {
         <svg node_ref=node_ref width=svg_width height=format!("{height}px") viewBox=svg_viewbox>
-            <Provider value=cx>{children()}</Provider>
+            <Provider value=cx>{children.map(|children_fn| children_fn())}</Provider>
         </svg>
     }
 }
 
 #[component]
 pub fn Highlight(
-    top: u32,
-    bottom: u32,
+    #[prop(into)] top: u32,
+    #[prop(into)] bottom: u32,
     #[prop(into)] range: Signal<(u32, u32)>,
-    #[prop(default = None)] bottom_range: Option<Signal<(u32, u32)>>,
-    #[prop(default = Colour::LightGrey)] color: Colour,
+    #[prop(default = None, into, optional)] bottom_range: Option<Signal<(u32, u32)>>,
+    #[prop(default = Signal::derive(move || Colour::LightGrey), into, optional)] color: Signal<
+        Colour,
+    >,
 ) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Highlight must be descendent of Figure");
 
     let path = Memo::new(move |_| {
         cx.with(|fig| {
             let (start, end) = range();
-            let (_b_start, _b_end) = match bottom_range {
-                Some(b_range) => b_range(),
-                None => (start, end),
-            };
+
+            // TODO
+            //            let b_range = match bottom_range {
+            //                Some(br) => br,
+            //                None => range,
+            //            };
 
             if fig.circular {
                 let radius = fig.width / 2.0;
@@ -259,11 +253,14 @@ pub fn Highlight(
         })
     });
 
-    view! { <path d=path fill=color.to_string() /> }
+    view! { <path d=path fill=move || color().to_string() /> }
 }
 
 #[component]
-pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
+pub fn Track(
+    #[prop(into)] index: u32,
+    #[prop(optional)] children: Option<ChildrenFn>,
+) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Track must be descendent of Figure");
 
     let index = f64::from(index);
@@ -292,7 +289,7 @@ pub fn Track(#[prop(into)] index: u32, children: ChildrenFn) -> impl IntoView {
 
     view! {
         <Provider value=layout>
-            <g>{children()}</g>
+            <g>{children.map(|children_fn| children_fn())}</g>
         </Provider>
     }
 }
@@ -379,8 +376,6 @@ pub fn Region(
     #[prop(optional)] label: Option<String>,
     #[prop(optional)] color: Colour,
 ) -> impl IntoView {
-    //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
-
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Region must be child of Track");
     let label_pos = Memo::new(move |_| u32::midpoint(start(), end()));
     view! {
