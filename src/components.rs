@@ -298,24 +298,21 @@ pub fn Track(
 pub fn Bar(
     #[prop(into)] start: Signal<u32>,
     #[prop(into)] end: Signal<u32>,
-    #[prop(optional)] label: Option<String>,
-    #[prop(default = Colour::Black)] color: Colour,
+    #[prop(default = Signal::derive(move || Colour::Black), into, optional)] color: Signal<Colour>,
     #[prop(optional)] style: ElemStyle,
+    #[prop(optional)] children: Option<ChildrenFn>,
 ) -> impl IntoView {
-    let layout = use_context::<Memo<LayoutWrapper>>().expect("Region must be child of Track");
-    let pos = Memo::new(move |_| u32::midpoint(start(), end()));
+    let layout = use_context::<Memo<LayoutWrapper>>().expect("Bar must be child of Track");
+    //let pos = Memo::new(move |_| u32::midpoint(start(), end()));
     view! {
         <g>
             <path
                 d=move || layout.with(|l| { l.draw_bar(start(), end(), style) })
-                stroke=color.to_string()
+                stroke=move || color().to_string()
                 stroke_width="2"
                 fill="none"
             />
-            {label
-                .map(|text| {
-                    view! { <Label pos=pos>{text}</Label> }
-                })}
+            <Provider value=layout>{children.map(|children_fn| children_fn())}</Provider>
         </g>
     }
 }
@@ -323,7 +320,7 @@ pub fn Bar(
 #[component]
 pub fn Label(
     #[prop(into)] pos: Signal<u32>,
-    #[prop(optional)] color: Option<Colour>,
+    #[prop(default = Signal::derive(move || Colour::Black), into, optional)] color: Signal<Colour>,
     children: Children,
 ) -> impl IntoView {
     //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
@@ -336,7 +333,7 @@ pub fn Label(
             y=move || pos.with(|p| p.y)
             text-anchor="middle"
             dominant-baseline="middle"
-            fill=color.unwrap_or(Colour::Black).to_string()
+            fill=move || color().to_string()
             font-size="smaller"
             font-family="monospace"
         >
@@ -373,20 +370,20 @@ pub fn Region(
     #[prop(into)] start: Signal<u32>,
     #[prop(into)] end: Signal<u32>,
     #[prop(optional)] style: ElemStyle,
-    #[prop(optional)] label: Option<String>,
-    #[prop(optional)] color: Colour,
+    #[prop(default = Signal::derive(move || Colour::LightGrey), into, optional)] color: Signal<
+        Colour,
+    >,
+    #[prop(optional)] children: Option<ChildrenFn>,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Region must be child of Track");
-    let label_pos = Memo::new(move |_| u32::midpoint(start(), end()));
+    //    let label_pos = Memo::new(move |_| u32::midpoint(start(), end()));
     view! {
         <g>
             <path
                 d=move || { layout.with(|l| l.draw_filled(start(), end(), style)) }
-                fill=color.to_string()
+                fill=move || color().to_string()
             />
-            label.map(|text| {
-                view! { <Label pos=label_pos>{text}</Label> }
-            })
+            <Provider value=layout>{children.map(|children_fn| children_fn())}</Provider>
         </g>
     }
 }
@@ -444,7 +441,9 @@ pub fn Ribbon(
     #[prop(into)] start: Signal<(u32, u32)>,
     #[prop(into)] end: Signal<(u32, u32)>,
     #[prop(default = None)] target: Option<u32>,
-    #[prop(default = Colour::OrangeRed)] color: Colour,
+    #[prop(default = Signal::derive(move || Colour::OrangeRed), into, optional)] color: Signal<
+        Colour,
+    >,
     #[prop(default = 0.2)] opacity: f64,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Ribbon must be child of Track");
@@ -452,7 +451,7 @@ pub fn Ribbon(
         <g>
             <path
                 d=move || { layout.with(|l| l.draw_ribbon(start(), end(), target)) }
-                fill=color.to_string()
+                fill=move || color().to_string()
                 opacity=opacity.to_string()
             />
         </g>
