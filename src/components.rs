@@ -7,6 +7,7 @@ use crate::render::{
 //use leptos::either::Either;
 //use leptos::logging;
 use leptos::context::Provider;
+use leptos::ev::MouseEvent;
 use leptos::prelude::*;
 use leptos::svg;
 use leptos::wasm_bindgen::closure::Closure;
@@ -301,9 +302,29 @@ pub fn Bar(
     #[prop(default = Signal::derive(move || Colour::Black), into, optional)] color: Signal<Colour>,
     #[prop(optional)] style: ElemStyle,
     #[prop(optional)] children: Option<ChildrenFn>,
+    #[prop(optional)] on_click: Option<Callback<()>>,
+    #[prop(optional)] on_hover: Option<Callback<bool>>,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Bar must be child of Track");
-    //let pos = Memo::new(move |_| u32::midpoint(start(), end()));
+
+    let handle_leave = move |_: MouseEvent| {
+        if let Some(cb) = on_hover {
+            cb.run(false);
+        }
+    };
+
+    let handle_enter = move |_: MouseEvent| {
+        if let Some(cb) = on_hover {
+            cb.run(true);
+        }
+    };
+
+    let on_click = move |_| {
+        if let Some(cb) = on_click {
+            cb.run(());
+        }
+    };
+
     view! {
         <g>
             <path
@@ -311,6 +332,9 @@ pub fn Bar(
                 stroke=move || color().to_string()
                 stroke_width="2"
                 fill="none"
+                on:mouseenter=handle_enter
+                on:mouseleave=handle_leave
+                on:click=on_click
             />
             <Provider value=layout>{children.map(|children_fn| children_fn())}</Provider>
         </g>
@@ -374,15 +398,38 @@ pub fn Region(
     #[prop(default = Signal::derive(move || Colour::LightGrey), into, optional)] color: Signal<
         Colour,
     >,
+    #[prop(optional)] on_click: Option<Callback<()>>,
+    #[prop(optional)] on_hover: Option<Callback<bool>>,
     #[prop(optional)] children: Option<ChildrenFn>,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Region must be child of Track");
     //    let label_pos = Memo::new(move |_| u32::midpoint(start(), end()));
+
+    let handle_leave = move |_: MouseEvent| {
+        if let Some(cb) = on_hover {
+            cb.run(false);
+        }
+    };
+
+    let handle_enter = move |_: MouseEvent| {
+        if let Some(cb) = on_hover {
+            cb.run(true);
+        }
+    };
+
+    let on_click = move |_| {
+        if let Some(cb) = on_click {
+            cb.run(());
+        }
+    };
     view! {
         <g>
             <path
                 d=move || { layout.with(|l| l.draw_filled(start(), end(), style)) }
                 fill=move || color().to_string()
+                on:mouseenter=handle_enter
+                on:mouseleave=handle_leave
+                on:click=on_click
             />
             <Provider value=layout>{children.map(|children_fn| children_fn())}</Provider>
         </g>
@@ -445,15 +492,39 @@ pub fn Ribbon(
     #[prop(default = Signal::derive(move || Colour::OrangeRed), into, optional)] color: Signal<
         Colour,
     >,
+    #[prop(optional)] on_click: Option<Callback<()>>,
+    #[prop(optional)] on_hover: Option<Callback<bool>>,
     #[prop(default = 0.2)] opacity: f64,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Ribbon must be child of Track");
+
+    let handle_leave = move |_: MouseEvent| {
+        if let Some(cb) = on_hover {
+            cb.run(false);
+        }
+    };
+
+    let handle_enter = move |_: MouseEvent| {
+        if let Some(cb) = on_hover {
+            cb.run(true);
+        }
+    };
+
+    let on_click = move |_| {
+        if let Some(cb) = on_click {
+            cb.run(());
+        }
+    };
+
     view! {
         <g>
             <path
                 d=move || { layout.with(|l| l.draw_ribbon(start(), end(), target)) }
                 fill=move || color().to_string()
                 opacity=opacity.to_string()
+                on:mouseenter=handle_enter
+                on:mouseleave=handle_leave
+                on:click=on_click
             />
         </g>
     }
