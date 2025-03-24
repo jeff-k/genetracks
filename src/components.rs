@@ -207,7 +207,7 @@ pub fn Highlight(
     #[prop(into)] top: u32,
     #[prop(into)] bottom: u32,
     #[prop(into)] range: Signal<(u32, u32)>,
-    #[prop(default = None, into, optional)] bottom_range: Option<Signal<(u32, u32)>>,
+    //    #[prop(default = None, into, optional)] bottom_range: Option<Signal<(u32, u32)>>,
     #[prop(default = Signal::derive(move || Colour::LightGrey), into, optional)] color: Signal<
         Colour,
     >,
@@ -327,6 +327,7 @@ pub fn Label(
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Label must be child of Track");
 
     let pos = Memo::new(move |_| layout.with(|l| l.map_pos(pos())));
+
     view! {
         <text
             x=move || pos.with(|p| p.x)
