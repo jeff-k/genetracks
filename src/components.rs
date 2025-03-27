@@ -5,9 +5,10 @@ use crate::render::{
     CircularCoords, Layout, LayoutWrapper, LinearCoords, draw_highlight, draw_sector,
 };
 //use leptos::either::Either;
-//use leptos::logging;
 use leptos::context::Provider;
 use leptos::ev::MouseEvent;
+use leptos::ev::WheelEvent;
+use leptos::logging;
 use leptos::prelude::*;
 use leptos::svg;
 use leptos::wasm_bindgen::closure::Closure;
@@ -261,6 +262,7 @@ pub fn Highlight(
 pub fn Track(
     #[prop(into)] index: u32,
     #[prop(optional)] children: Option<ChildrenFn>,
+    #[prop(optional)] on_scroll: Option<WriteSignal<(u32, u32)>>,
 ) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Track must be descendent of Figure");
 
@@ -288,9 +290,54 @@ pub fn Track(
         })
     });
 
+    let on_wheel = move |ev: WheelEvent| {
+        match on_scroll {
+            None => (),
+            Some(zoom) => {
+                //      j     Effect::new(move || {
+                ev.prevent_default();
+                cx.with(|fig| {
+                    let (vs, ve) = fig.view;
+                    let x = vs as f64 + (ev.offset_x() as f64 / fig.scale);
+
+                    let dy = ev.delta_y() as f64 / fig.scale;
+                    let dx = ev.delta_x() as f64 / fig.scale;
+
+                    logging::log!("wheel event {x} {dy} {dx} {ve:?}");
+
+                    zoom.update(|(s, e)| {
+                        if dx > 0.0 {
+                            let dx = dx.abs() as u32;
+                            *s = s.saturating_add(dx);
+                            *e = s.saturating_add(dx);
+                        } else if dx < 0.0 {
+                            let dx = dx.abs() as u32;
+                            *s = s.saturating_sub(dx);
+                            *e = e.saturating_sub(dx);
+                        }
+                        if dy < 0.0 {
+                            let dy = dy.abs() as u32;
+                            *s = s.saturating_add(dy);
+                            *e = e.saturating_sub(dy);
+                        } else if dy > 0.0 {
+                            let dy = dy.abs() as u32;
+                            *s = s.saturating_add(dy);
+                            *e = e.saturating_sub(dy);
+                        }
+                    });
+                });
+            }
+        } //                };
+    };
+
     view! {
         <Provider value=layout>
-            <g>{children.map(|children_fn| children_fn())}</g>
+            <g
+            on:wheel=on_wheel
+            class:grab=!on_scroll.is_none()
+            >
+            {children.map(|children_fn| children_fn())}
+            </g>
         </Provider>
     }
 }
