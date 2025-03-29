@@ -8,7 +8,7 @@ use crate::render::{
 use leptos::context::Provider;
 use leptos::ev::MouseEvent;
 use leptos::ev::WheelEvent;
-use leptos::logging;
+//use leptos::logging;
 use leptos::prelude::*;
 use leptos::svg;
 use leptos::wasm_bindgen::closure::Closure;
@@ -124,6 +124,7 @@ pub fn Figure(
     #[prop(default = 12.0)] track_height: f64,
     #[prop(into, optional)] view: Option<Signal<(u32, u32)>>,
     #[prop(optional)] children: Option<ChildrenFn>,
+    #[prop(optional)] on_scroll: Option<WriteSignal<(u32, u32)>>,
 ) -> impl IntoView {
     //        logging::log!("updating figure context: {} {} {}", start, end, width());
 
@@ -190,6 +191,42 @@ pub fn Figure(
         }
     });
 
+    let on_wheel = move |ev: WheelEvent| {
+        if let Some(zoom) = on_scroll {
+            ev.prevent_default();
+            cx.with(|fig| {
+                let (vs, ve) = fig.view;
+                let length = fig.length as u32;
+                let vwidth = ve - vs;
+                let min_v = 100u32;
+
+                let cursor = ev.offset_x() as f64 / fig.width;
+
+                let pos: u32 = vs + cursor as u32 * vwidth;
+
+                if ev.delta_y() != 0.0 {
+                    let zoom_factor: f64 = if ev.delta_y() > 0.0 { 1.1 } else { 0.9 };
+
+                    zoom.update(|(s, e)| {
+                        let mut new_width = (vwidth as f64 * zoom_factor) as u32;
+                        new_width = new_width.clamp(min_v, length);
+
+                        let cursor_offset = cursor as u32 * new_width;
+
+                        let new_start: u32 = (pos as u32)
+                            .saturating_sub(cursor_offset as u32)
+                            .min(length - new_width);
+
+                        let new_end = new_start + new_width;
+
+                        *s = new_start as u32;
+                        *e = new_end;
+                    });
+                }
+            });
+        }
+    };
+
     let svg_width = Memo::new(move |_| format!("{}px", fig_width()));
     let svg_viewbox = Memo::new(move |_| {
         let (start, _) = viewbox();
@@ -198,7 +235,14 @@ pub fn Figure(
     });
 
     view! {
-        <svg node_ref=node_ref width=svg_width height=format!("{height}px") viewBox=svg_viewbox>
+        <svg
+            node_ref=node_ref
+            width=svg_width
+            height=format!("{height}px")
+            viewBox=svg_viewbox
+            on:wheel=on_wheel
+            style="touch-action: none;"
+        >
             <Provider value=cx>{children.map(|children_fn| children_fn())}</Provider>
         </svg>
     }
@@ -262,7 +306,6 @@ pub fn Highlight(
 pub fn Track(
     #[prop(into)] index: u32,
     #[prop(optional)] children: Option<ChildrenFn>,
-    #[prop(optional)] on_scroll: Option<WriteSignal<(u32, u32)>>,
 ) -> impl IntoView {
     let cx = use_context::<Memo<FigCx>>().expect("Track must be descendent of Figure");
 
@@ -290,54 +333,9 @@ pub fn Track(
         })
     });
 
-    let on_wheel = move |ev: WheelEvent| {
-        match on_scroll {
-            None => (),
-            Some(zoom) => {
-                //      j     Effect::new(move || {
-                ev.prevent_default();
-                cx.with(|fig| {
-                    let (vs, ve) = fig.view;
-                    let x = vs as f64 + (ev.offset_x() as f64 / fig.scale);
-
-                    let dy = ev.delta_y() as f64 / fig.scale;
-                    let dx = ev.delta_x() as f64 / fig.scale;
-
-                    logging::log!("wheel event {x} {dy} {dx} {ve:?}");
-
-                    zoom.update(|(s, e)| {
-                        if dx > 0.0 {
-                            let dx = dx.abs() as u32;
-                            *s = s.saturating_add(dx);
-                            *e = s.saturating_add(dx);
-                        } else if dx < 0.0 {
-                            let dx = dx.abs() as u32;
-                            *s = s.saturating_sub(dx);
-                            *e = e.saturating_sub(dx);
-                        }
-                        if dy < 0.0 {
-                            let dy = dy.abs() as u32;
-                            *s = s.saturating_add(dy);
-                            *e = e.saturating_sub(dy);
-                        } else if dy > 0.0 {
-                            let dy = dy.abs() as u32;
-                            *s = s.saturating_add(dy);
-                            *e = e.saturating_sub(dy);
-                        }
-                    });
-                });
-            }
-        } //                };
-    };
-
     view! {
         <Provider value=layout>
-            <g
-            on:wheel=on_wheel
-            class:grab=!on_scroll.is_none()
-            >
-            {children.map(|children_fn| children_fn())}
-            </g>
+            <g>{children.map(|children_fn| children_fn())}</g>
         </Provider>
     }
 }
@@ -349,7 +347,7 @@ pub fn Bar(
     #[prop(default = Signal::derive(move || Colour::Black), into, optional)] color: Signal<Colour>,
     #[prop(optional)] style: ElemStyle,
     #[prop(optional)] children: Option<ChildrenFn>,
-    #[prop(optional)] on_click: Option<Callback<()>>,
+    #[prop(optional)] on_click: Option<Callback<u32>>,
     #[prop(optional)] on_hover: Option<Callback<bool>>,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Bar must be child of Track");
@@ -368,7 +366,7 @@ pub fn Bar(
 
     let on_click = move |_| {
         if let Some(cb) = on_click {
-            cb.run(());
+            cb.run(0);
         }
     };
 
@@ -445,7 +443,7 @@ pub fn Region(
     #[prop(default = Signal::derive(move || Colour::LightGrey), into, optional)] color: Signal<
         Colour,
     >,
-    #[prop(optional)] on_click: Option<Callback<()>>,
+    #[prop(optional)] on_click: Option<Callback<u32>>,
     #[prop(optional)] on_hover: Option<Callback<bool>>,
     #[prop(optional)] children: Option<ChildrenFn>,
 ) -> impl IntoView {
@@ -466,7 +464,7 @@ pub fn Region(
 
     let on_click = move |_| {
         if let Some(cb) = on_click {
-            cb.run(());
+            cb.run(0);
         }
     };
     view! {
@@ -494,7 +492,6 @@ pub fn Ticks(
     let ticks: Memo<Vec<u32>> = Memo::new(move |_| {
         let (start, end) = range();
         let m = ((end - start) / n).max(1);
-        //logging::log!("{m}");
         (0..=n).map(|i| start + (i * m)).collect::<Vec<_>>()
     });
 
@@ -539,7 +536,7 @@ pub fn Ribbon(
     #[prop(default = Signal::derive(move || Colour::OrangeRed), into, optional)] color: Signal<
         Colour,
     >,
-    #[prop(optional)] on_click: Option<Callback<()>>,
+    #[prop(optional)] on_click: Option<Callback<u32>>,
     #[prop(optional)] on_hover: Option<Callback<bool>>,
     #[prop(default = 0.2)] opacity: f64,
 ) -> impl IntoView {
@@ -559,7 +556,7 @@ pub fn Ribbon(
 
     let on_click = move |_| {
         if let Some(cb) = on_click {
-            cb.run(());
+            cb.run(0);
         }
     };
 
