@@ -1,0 +1,97 @@
+
+       [
+            {
+            "elements": [
+            {
+                "start": 2085,
+                "end": 5096,
+                "label": "pol",
+                "colour": "Firebrick"
+            },
+            {
+                "start": 5559,
+                "end": 5850,
+                "label": "vpr",
+                "colour": "Salmon"
+
+            },
+            {
+                "start": 5970,
+                "end": 6045,
+                "label": "tat",
+                "colour": "Yellowgreen"
+            },
+            {
+                "start": 6225,
+                "end": 8795,
+                "label": "env",
+                "colour": "Salmon"
+            }
+            ]               
+            },
+            {
+            "elements": [
+            {
+                "start": 5831,
+                "end": 6045,
+                "label": "tat",
+                "colour": "Plum"
+            },
+            {
+                "start": 6062,
+                "end": 6310,
+                "label": "vpu",
+                "colour": "Red"
+
+            },
+            {
+                "start": 8379,
+                "end": 8653,
+                "label": "rev",
+                "colour": "Darkgrey"
+            },
+            {
+                "start": 9086,
+                "end": 9719,
+                "label": "3' LTR",
+                "colour": "Darkgrey"
+            }
+            ]               
+            },
+            {
+            "elements": [
+            {
+                "start": 0,
+                "end": 634,
+                "label": "5' LTR",
+                "colour": "Darkgrey"
+            },
+            {
+                "start": 790,
+                "end": 2292,
+                "label": "gag",
+                "colour": "Lightblue"
+
+            },
+            {
+                "start": 5041,
+                "end": 5619,
+                "label": "vif",
+                "colour": "Yellowgreen"
+            },
+            {
+                "start": 8379,
+                "end": 8469,
+                "label": "tat",
+                "colour": "Plum"
+            },
+            {
+                "start": 8797,
+                "end": 9417,
+                "label": "nef",
+                "colour": "Mediumaquamarine"
+            }
+            ]               
+            }
+      ] 
+   
