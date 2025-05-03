@@ -126,8 +126,6 @@ pub fn Figure(
     #[prop(optional)] children: Option<ChildrenFn>,
     #[prop(optional)] on_scroll: Option<WriteSignal<(u32, u32)>>,
 ) -> impl IntoView {
-    //        logging::log!("updating figure context: {} {} {}", start, end, width());
-
     let node_ref: NodeRef<svg::Svg> = NodeRef::new();
 
     let (container_width, set_width) = signal(800f64);
@@ -138,7 +136,6 @@ pub fn Figure(
     };
 
     let fig_length = Memo::new(move |_| f64::from(length()));
-    //    let fig_width = Memo::new(move |_| fig_width());
     let viewbox = Memo::new(move |_| match view {
         Some(viewfn) => viewfn(),
         None => (0, length()),
@@ -200,27 +197,43 @@ pub fn Figure(
                 let vwidth = ve - vs;
                 let min_v = 100u32;
 
-                let cursor = ev.offset_x() as f64 / fig.width;
+                let cursor = f64::from(ev.offset_x()) / fig.scale;
 
-                let pos: u32 = vs + cursor as u32 * vwidth;
+                let pos: u32 = cursor as u32;
+                //logging::log!("cursor pos {pos} {vwidth} {cursor} {vs} {ve}");
 
                 if ev.delta_y() != 0.0 {
                     let zoom_factor: f64 = if ev.delta_y() > 0.0 { 1.1 } else { 0.9 };
 
                     zoom.update(|(s, e)| {
-                        let mut new_width = (vwidth as f64 * zoom_factor) as u32;
+                        let mut new_width = (f64::from(vwidth) * zoom_factor) as u32;
                         new_width = new_width.clamp(min_v, length);
 
-                        let cursor_offset = cursor as u32 * new_width;
+                        //                       let new_pos = (pos as f64 / new_scale) as u32;
 
-                        let new_start: u32 = (pos as u32)
-                            .saturating_sub(cursor_offset as u32)
-                            .min(length - new_width);
+                        let cursor_offset = new_width / 2;
+                        //let x = pos.saturating_sub(cursor_offset);
+
+                        let new_start: u32 = pos.saturating_sub(cursor_offset);
+                        //    .min(length - new_width);
 
                         let new_end = new_start + new_width;
+                        //logging::log!("{new_start} - {new_pos} - {new_end}");
 
-                        *s = new_start as u32;
+                        *s = new_start;
                         *e = new_end;
+                    });
+                }
+
+                if ev.delta_x() != 0.0 {
+                    zoom.update(|(s, e)| {
+                        if ev.delta_x() < 0.0 {
+                            *s = s.saturating_sub(10);
+                            *e = *s + vwidth;
+                        } else {
+                            *e = e.saturating_add(10).min(length);
+                            *s = e.saturating_sub(vwidth);
+                        }
                     });
                 }
             });
