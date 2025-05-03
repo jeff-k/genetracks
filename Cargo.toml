@@ -1,13 +1,15 @@
 [package]
 name = "genetracks"
-version = "0.8.0"
+version = "0.8.1"
 edition = "2024"
 
 [dependencies]
 #serde = { version = "1.0", features = ["derive", "rc" ] }
 #serde_json = "1.0"
 
-leptos = { version = "0.8.0-beta", features=["nightly", "csr"] }
+leptos = { version = "0.8", features=["nightly", "csr"] }
+
+#leptos = { git = "https://github.com/leptos-rs/leptos.git", features = ["csr", "nightly"] }
 
 web-sys = { version = "0.3", features = [
   "ResizeObserver",
