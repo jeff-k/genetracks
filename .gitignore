@@ -105,3 +105,4 @@ venv.bak/
 
 # rust
 /target
+Cargo.lock

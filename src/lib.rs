@@ -7,6 +7,7 @@ pub use core::fmt;
 pub mod components;
 pub mod elements;
 mod render;
+pub mod slider;
 
 pub use elements::{ElemStyle, ElementData, TrackData};
 pub use render::{Layout, LayoutWrapper};

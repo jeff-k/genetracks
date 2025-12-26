@@ -1,24 +1,33 @@
+cargo-features = ["panic-immediate-abort"]
+
 [package]
 name = "genetracks"
 version = "0.8.1"
 edition = "2024"
+exclude = ["examples"]
+
+[lib]
+path = "src/lib.rs"
+
+
 
 [dependencies]
+console_error_panic_hook = "0.1.7"
 #serde = { version = "1.0", features = ["derive", "rc" ] }
 #serde_json = "1.0"
-
 leptos = { version = "0.8", features=["nightly", "csr"] }
-
-#leptos = { git = "https://github.com/leptos-rs/leptos.git", features = ["csr", "nightly"] }
 
 web-sys = { version = "0.3", features = [
   "ResizeObserver",
   "ResizeObserverEntry",
   "DomRect"
 ]}
-#console_error_panic_hook = "0.1.7"
 
 [profile.release]
 lto = true
 codegen-units = 1
 opt-level = 'z'
+panic = "immediate-abort"
+
+[package.metadata.leptos]
+lib-profile-release = "wasm-release"

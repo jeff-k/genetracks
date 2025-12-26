@@ -107,10 +107,10 @@ pub fn Circular(
 
     let width = Memo::new(move |_| cx().view_width());
     let height = Memo::new(move |_| cx().view_height());
-    let viewBox = Memo::new(move |_| cx().viewbox());
+    let view_box = Memo::new(move |_| cx().viewbox());
 
     view! {
-        <svg node_ref=node_ref width=width height=height viewBox=viewBox>
+        <svg node_ref=node_ref width=width height=height viewBox=view_box>
             <Provider value=cx>{children.map(|children_fn| children_fn())}</Provider>
         </svg>
     }
@@ -160,31 +160,30 @@ pub fn Figure(
     });
 
     Effect::new(move |_| {
-        if width.is_none() {
-            if let Some(elem) = node_ref.get() {
-                if let Some(parent) = elem.parent_element() {
-                    let rect = parent.get_bounding_client_rect();
-                    let w = rect.width();
-                    set_width.update(|s| *s = w);
+        if width.is_none()
+            && let Some(elem) = node_ref.get()
+            && let Some(parent) = elem.parent_element()
+        {
+            let rect = parent.get_bounding_client_rect();
+            let w = rect.width();
+            set_width.update(|s| *s = w);
 
-                    let cb = Closure::wrap(Box::new(
-                        move |es: Vec<ResizeObserverEntry>, _: ResizeObserver| {
-                            if let Some(e) = es.first() {
-                                let rect = e.content_rect();
-                                set_width.update(|s| *s = rect.width());
-                            }
-                        },
-                    )
-                        as Box<dyn FnMut(Vec<ResizeObserverEntry>, ResizeObserver)>);
+            let cb = Closure::wrap(Box::new(
+                move |es: Vec<ResizeObserverEntry>, _: ResizeObserver| {
+                    if let Some(e) = es.first() {
+                        let rect = e.content_rect();
+                        set_width.update(|s| *s = rect.width());
+                    }
+                },
+            )
+                as Box<dyn FnMut(Vec<ResizeObserverEntry>, ResizeObserver)>);
 
-                    let observer = ResizeObserver::new(cb.as_ref().unchecked_ref()).unwrap();
+            let observer = ResizeObserver::new(cb.as_ref().unchecked_ref()).unwrap();
 
-                    observer.observe(&parent);
+            observer.observe(&parent);
 
-                    // leaks memory?
-                    cb.forget();
-                }
-            }
+            // leaks memory?
+            cb.forget();
         }
     });
 
