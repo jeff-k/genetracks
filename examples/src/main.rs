@@ -31,18 +31,13 @@ fn screen_height() -> u32 {
 
 fn ribbons() -> impl IntoView {
     view! {
-        <Ribbon
-            start=(2400u32, 3924u32)
-            end=(12400u32, 12924u32)
-            color=Colour::RoyalBlue
-        />
+        <Ribbon start=(2400u32, 3924u32) end=(12400u32, 12924u32) color=Colour::RoyalBlue />
 
         <Ribbon
             start=(5474935u32, 5487569u32)
             end=(7109290u32, 7121924u32)
             color=Colour::RoyalBlue
         />
-
     }
 }
 /*
@@ -149,9 +144,7 @@ fn App() -> impl IntoView {
 
                     <Track index=3u32></Track>
 
-                    <Track index=2u32>
-                        ribbons()
-                    </Track>
+                    <Track index=2u32>ribbons()</Track>
 
                     <Track index=6u32></Track>
 
@@ -178,17 +171,13 @@ fn App() -> impl IntoView {
                             <Ticks n=45u32 range=(0u32, length) />
                         </Track>
 
-                        <Track index=3u32>
-                            // edge_3a,279160,LightGrey,-,7071469,7350629
+                        <Track index=3u32>// edge_3a,279160,LightGrey,-,7071469,7350629
                         </Track>
-                        <Track index=2u32>
-                        </Track>
+                        <Track index=2u32></Track>
 
-                        <Track index=4u32>
-                        </Track>
+                        <Track index=4u32></Track>
 
-                        <Track index=6u32>
-                        </Track>
+                        <Track index=6u32></Track>
 
                     </Circular>
                 </div>

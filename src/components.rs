@@ -359,10 +359,19 @@ pub fn Track(
         })
     });
 
+    let transform = Memo::new(move |_| {
+        if cx.with(|f| f.circular) {
+            String::new()
+        } else {
+            let row = index as f64 * cx.with(|f| f.track_height);
+            format!("translate(0, {row})")
+        }
+    });
+
     view! {
-        <Provider value=layout>
-            <g>{children.map(|children_fn| children_fn())}</g>
-        </Provider>
+        <g transform=transform>
+            <Provider value=layout>{children.map(|children_fn| children_fn())}</Provider>
+        </g>
     }
 }
 
@@ -403,6 +412,7 @@ pub fn Bar(
                 stroke=move || color().to_string()
                 stroke_width="2"
                 fill="none"
+                vector-effect="non-scaling-stroke"
                 on:mouseenter=handle_enter
                 on:mouseleave=handle_leave
                 on:click=on_click
@@ -421,17 +431,32 @@ pub fn Label(
     //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Label must be child of Track");
 
-    let pos = Memo::new(move |_| layout.with(|l| l.map_pos(pos())));
+    let mapped_pos = Memo::new(move |_| layout.with(|l| l.map_pos(pos())));
+
+    let transform = Memo::new(move |_| {
+        layout.with(|l| match l {
+            LayoutWrapper::Linear(lc) => {
+                let p = l.map_pos(pos());
+                let inv_scale = 1.0 / lc.scale;
+                format!(
+                    "translate({} {}) scale({}) translate({}, {})",
+                    p.x, p.y, inv_scale, -p.x, -p.y
+                )
+            }
+            LayoutWrapper::Circular(_) => String::new(),
+        })
+    });
 
     view! {
         <text
-            x=move || pos.with(|p| p.x)
-            y=move || pos.with(|p| p.y)
+            x=move || mapped_pos.with(|p| p.x)
+            y=move || mapped_pos.with(|p| p.y)
             text-anchor="middle"
             dominant-baseline="middle"
             fill=move || color().to_string()
-            font-size="smaller"
+            font-size="10"
             font-family="monospace"
+            transform=transform
         >
             {children()}
         </text>
@@ -451,6 +476,7 @@ pub fn Tick(
                 d=move || { layout.with(|l| l.draw_tick(pos())) }
                 stroke="black"
                 stroke-width="1"
+                vector-effect="non-scaling-stroke"
                 fill="none"
             />
             {label
@@ -498,6 +524,7 @@ pub fn Region(
             <path
                 d=move || { layout.with(|l| l.draw_filled(start(), end(), style)) }
                 fill=move || color().to_string()
+                vector-effect="non-scaling-stroke"
                 on:mouseenter=handle_enter
                 on:mouseleave=handle_leave
                 on:click=on_click
