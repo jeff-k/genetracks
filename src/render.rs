@@ -86,25 +86,17 @@ impl Layout for LinearCoords {
         let b_start = f64::from(end.0);
         let b_end = f64::from(end.1);
 
-        let scale = self.scale;
-
-        let start_top = Point {
-            x: t_start * scale,
-            y,
-        };
+        let start_top = Point { x: t_start, y };
 
         let start_bottom = Point {
-            x: b_start * scale,
+            x: b_start,
             y: y + bottom,
         };
 
-        let end_top = Point {
-            x: t_end * scale,
-            y,
-        };
+        let end_top = Point { x: t_end, y };
 
         let end_bottom = Point {
-            x: b_end * scale,
+            x: b_end,
             y: y + bottom,
         };
         format!(
@@ -132,31 +124,34 @@ impl Layout for LinearCoords {
         self.height = *track_height;
     }
     fn map_pos(&self, pos: u32) -> Point {
-        let x = f64::from(pos) * self.scale;
+        let x = f64::from(pos);
         let y = self.origin.y + (self.height / 2.0);
         Point { x, y }
     }
     fn draw_bar(&self, start: u32, end: u32, decoration: ElemStyle) -> String {
         let start = f64::from(start);
         let end = f64::from(end);
-        let scale = self.scale;
-        let start_x = (self.origin.x + start) * self.scale;
-        let end_x = (self.origin.x + end) * self.scale;
+        let start_x = self.origin.x + start;
+        let end_x = self.origin.x + end;
         let y = self.origin.y;
         let height = self.height;
+        let arrow = 10.0 / self.scale;
 
         let start_base_top = Point {
-            x: start_x + 10.0,
+            x: start_x + arrow,
             y,
         };
         let start_base_bottom = Point {
-            x: start_x + 10.0,
+            x: start_x + arrow,
             y: y + height,
         };
 
-        let end_base_top = Point { x: end_x - 10.0, y };
+        let end_base_top = Point {
+            x: end_x - arrow,
+            y,
+        };
         let end_base_bottom = Point {
-            x: end_x - 10.0,
+            x: end_x - arrow,
             y: y + height,
         };
 
@@ -193,7 +188,7 @@ impl Layout for LinearCoords {
             }
 
             ElemStyle::Left => {
-                if (end - start) * scale <= 10.0 {
+                if (end - start) * self.scale <= 10.0 {
                     format!(
                         "M {start_base_top} \
                             L {start_mid} \
@@ -214,7 +209,7 @@ impl Layout for LinearCoords {
                 }
             }
             ElemStyle::Right => {
-                if (end - start) * scale <= 10.0 {
+                if (end - start) * self.scale <= 10.0 {
                     format!(
                         "M {start_mid} \
                             L {end_mid} \
@@ -240,24 +235,27 @@ impl Layout for LinearCoords {
     fn draw_filled(&self, start: u32, end: u32, decoration: ElemStyle) -> String {
         let start = f64::from(start);
         let end = f64::from(end);
-        let scale = self.scale;
-        let start_x = (self.origin.x + start) * self.scale;
-        let end_x = (self.origin.x + end) * self.scale;
+        let start_x = self.origin.x + start;
+        let end_x = self.origin.x + end;
         let y = self.origin.y;
         let height = self.height;
+        let arrow = 10.0 / self.scale;
 
         let start_base_top = Point {
-            x: start_x + 10.0,
+            x: start_x + arrow,
             y,
         };
         let start_base_bottom = Point {
-            x: start_x + 10.0,
+            x: start_x + arrow,
             y: y + height,
         };
 
-        let end_base_top = Point { x: end_x - 10.0, y };
+        let end_base_top = Point {
+            x: end_x - arrow,
+            y,
+        };
         let end_base_bottom = Point {
-            x: end_x - 10.0,
+            x: end_x - arrow,
             y: y + height,
         };
 
@@ -293,7 +291,7 @@ impl Layout for LinearCoords {
             }
 
             ElemStyle::Left => {
-                if (end - start) * scale <= 10.0 {
+                if (end - start) * self.scale <= 10.0 {
                     format!(
                         "M {start_mid} \
                             L {start_base_top} \
@@ -315,7 +313,7 @@ impl Layout for LinearCoords {
             }
 
             ElemStyle::Right => {
-                if (end - start) * scale <= 10.0 {
+                if (end - start) * self.scale <= 10.0 {
                     format!(
                         "M {end_base_top} \
                             L {end_mid} \
@@ -340,12 +338,12 @@ impl Layout for LinearCoords {
     fn draw_tick(&self, pos: u32) -> String {
         let pos = f64::from(pos);
         let start = Point {
-            x: pos * self.scale,
+            x: pos,
             y: self.origin.y + (self.height / 2.0),
         };
 
         let end = Point {
-            x: pos * self.scale,
+            x: pos,
             y: self.origin.y,
         };
 

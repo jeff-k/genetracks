@@ -41,6 +41,14 @@ impl FigCx {
     }
 }
 
+/*
+impl FigCx {
+    pub fn track_coords(&self, index: u32) -> Coords {
+        todo!()
+    }
+}
+*/
+
 #[component]
 pub fn Circular(
     #[prop(into)] length: Signal<u32>,
@@ -78,29 +86,29 @@ pub fn Circular(
     Effect::new(move |_| {
         if width.is_none() {
             //logging::log!("creating width effect");
-            if let Some(elem) = node_ref.get() {
-                if let Some(parent) = elem.parent_element() {
-                    let rect = parent.get_bounding_client_rect();
-                    let w = rect.width();
-                    set_width.update(|s| *s = w);
+            if let Some(elem) = node_ref.get()
+                && let Some(parent) = elem.parent_element()
+            {
+                let rect = parent.get_bounding_client_rect();
+                let w = rect.width();
+                set_width.update(|s| *s = w);
 
-                    let cb = Closure::wrap(Box::new(
-                        move |es: Vec<ResizeObserverEntry>, _: ResizeObserver| {
-                            if let Some(e) = es.first() {
-                                let rect = e.content_rect();
-                                set_width.update(|s| *s = rect.width());
-                            }
-                        },
-                    )
-                        as Box<dyn FnMut(Vec<ResizeObserverEntry>, ResizeObserver)>);
+                let cb = Closure::wrap(Box::new(
+                    move |es: Vec<ResizeObserverEntry>, _: ResizeObserver| {
+                        if let Some(e) = es.first() {
+                            let rect = e.content_rect();
+                            set_width.update(|s| *s = rect.width());
+                        }
+                    },
+                )
+                    as Box<dyn FnMut(Vec<ResizeObserverEntry>, ResizeObserver)>);
 
-                    let observer = ResizeObserver::new(cb.as_ref().unchecked_ref()).unwrap();
+                let observer = ResizeObserver::new(cb.as_ref().unchecked_ref()).unwrap();
 
-                    observer.observe(&parent);
+                observer.observe(&parent);
 
-                    // leaks memory?
-                    cb.forget();
-                }
+                // leaks memory?
+                cb.forget();
             }
         }
     });
@@ -119,7 +127,7 @@ pub fn Circular(
 #[component]
 pub fn Figure(
     #[prop(into)] length: Signal<u32>,
-    #[prop(into, optional)] width: Option<Signal<u32>>,
+    #[prop(into, optional)] width: Option<Signal<u32>>, // reactive pixel width
     #[prop(default = 5)] tracks: u32,
     #[prop(default = 12.0)] track_height: f64,
     #[prop(into, optional)] view: Option<Signal<(u32, u32)>>,
@@ -159,6 +167,18 @@ pub fn Figure(
         circular: false,
     });
 
+    let view_range = move || match view {
+        Some(v) => v(),
+        None => (0, length()),
+    };
+
+    let logical_height = f64::from(tracks) * track_height;
+
+    let _viewbox = Memo::new(move |_| {
+        let (start, end) = view_range();
+        format!("{start} 0 {} {logical_height}", end - start)
+    });
+
     Effect::new(move |_| {
         if width.is_none()
             && let Some(elem) = node_ref.get()
@@ -188,62 +208,61 @@ pub fn Figure(
     });
 
     let on_wheel = move |ev: WheelEvent| {
-        if let Some(zoom) = on_scroll {
-            ev.prevent_default();
-            cx.with(|fig| {
-                let (vs, ve) = fig.view;
-                let length = fig.length as u32;
-                let vwidth = ve - vs;
-                let min_v = 100u32;
+        let Some(zoom) = on_scroll else { return };
+        ev.prevent_default();
 
-                let cursor = f64::from(ev.offset_x()) / fig.scale;
+        cx.with(|fig| {
+            let (vs, ve) = fig.view;
+            let length = fig.length as u32;
+            let vwidth = ve - vs;
+            let min_v = 100u32;
 
-                let pos: u32 = cursor as u32;
-                //logging::log!("cursor pos {pos} {vwidth} {cursor} {vs} {ve}");
+            let cursor = f64::from(ev.offset_x()) / fig.scale;
 
-                if ev.delta_y() != 0.0 {
-                    let zoom_factor: f64 = if ev.delta_y() > 0.0 { 1.1 } else { 0.9 };
+            let pos: u32 = cursor as u32;
+            //logging::log!("cursor pos {pos} {vwidth} {cursor} {vs} {ve}");
 
-                    zoom.update(|(s, e)| {
-                        let mut new_width = (f64::from(vwidth) * zoom_factor) as u32;
-                        new_width = new_width.clamp(min_v, length);
+            if ev.delta_y() != 0.0 {
+                let zoom_factor: f64 = if ev.delta_y() > 0.0 { 1.1 } else { 0.9 };
 
-                        //                       let new_pos = (pos as f64 / new_scale) as u32;
+                zoom.update(|(s, e)| {
+                    let mut new_width = (f64::from(vwidth) * zoom_factor) as u32;
+                    new_width = new_width.clamp(min_v, length);
 
-                        let cursor_offset = new_width / 2;
-                        //let x = pos.saturating_sub(cursor_offset);
+                    //                       let new_pos = (pos as f64 / new_scale) as u32;
 
-                        let new_start: u32 = pos.saturating_sub(cursor_offset);
-                        //    .min(length - new_width);
+                    let cursor_offset = new_width / 2;
+                    //let x = pos.saturating_sub(cursor_offset);
 
-                        let new_end = new_start + new_width;
-                        //logging::log!("{new_start} - {new_pos} - {new_end}");
+                    let new_start: u32 = pos.saturating_sub(cursor_offset);
+                    //    .min(length - new_width);
 
-                        *s = new_start;
-                        *e = new_end;
-                    });
-                }
+                    let new_end = new_start + new_width;
+                    //logging::log!("{new_start} - {new_pos} - {new_end}");
 
-                if ev.delta_x() != 0.0 {
-                    zoom.update(|(s, e)| {
-                        if ev.delta_x() < 0.0 {
-                            *s = s.saturating_sub(10);
-                            *e = *s + vwidth;
-                        } else {
-                            *e = e.saturating_add(10).min(length);
-                            *s = e.saturating_sub(vwidth);
-                        }
-                    });
-                }
-            });
-        }
+                    *s = new_start;
+                    *e = new_end;
+                });
+            }
+
+            if ev.delta_x() != 0.0 {
+                zoom.update(|(s, e)| {
+                    if ev.delta_x() < 0.0 {
+                        *s = s.saturating_sub(10);
+                        *e = *s + vwidth;
+                    } else {
+                        *e = e.saturating_add(10).min(length);
+                        *s = e.saturating_sub(vwidth);
+                    }
+                });
+            }
+        });
     };
 
     let svg_width = Memo::new(move |_| format!("{}px", fig_width()));
     let svg_viewbox = Memo::new(move |_| {
-        let (start, _) = viewbox();
-        let scaled = f64::from(start) * scale();
-        format!("{scaled} 0 {} {height}", fig_width())
+        let (start, end) = viewbox();
+        format!("{start} 0 {} {height}", end.saturating_sub(start))
     });
 
     view! {
@@ -253,7 +272,7 @@ pub fn Figure(
             height=format!("{height}px")
             viewBox=svg_viewbox
             on:wheel=on_wheel
-            style="touch-action: none;"
+            style="touch-action: none; user-select: none;"
         >
             <Provider value=cx>{children.map(|children_fn| children_fn())}</Provider>
         </svg>
@@ -301,12 +320,7 @@ pub fn Highlight(
                 let bottom = f64::from(bottom) * fig.track_height;
                 let (start, end) = range();
 
-                draw_highlight(
-                    f64::from(start) * fig.scale,
-                    f64::from(end) * fig.scale,
-                    top,
-                    bottom,
-                )
+                draw_highlight(f64::from(start), f64::from(end), top, bottom)
             }
         })
     });

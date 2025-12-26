@@ -26,12 +26,13 @@ pub fn RangeSlider(
     };
 
     let handle_end_change = move |ev| {
-        if let Ok(value) = event_target_value(&ev).parse::<u32>() {
-            if value <= max() && value >= min() {
-                let new_end = value.max(start().saturating_add(1000));
-                on_end(new_end);
-            }
-        };
+        if let Ok(value) = event_target_value(&ev).parse::<u32>()
+            && value <= max()
+            && value >= min()
+        {
+            let new_end = value.max(start().saturating_add(1000));
+            on_end(new_end);
+        }
     };
 
     let range_style = move || {
