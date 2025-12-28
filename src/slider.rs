@@ -21,7 +21,7 @@ pub fn RangeSlider(
 
     let handle_start_change = move |ev| {
         let value = event_target_value(&ev).parse::<u32>().unwrap();
-        let new_start = value.min(end().saturating_sub(1000));
+        let new_start = value.min(end().saturating_sub(100));
         on_start(new_start);
     };
 
@@ -30,7 +30,7 @@ pub fn RangeSlider(
             && value <= max()
             && value >= min()
         {
-            let new_end = value.max(start().saturating_add(1000));
+            let new_end = value.max(start().saturating_add(100));
             on_end(new_end);
         }
     };

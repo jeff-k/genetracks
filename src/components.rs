@@ -41,14 +41,6 @@ impl FigCx {
     }
 }
 
-/*
-impl FigCx {
-    pub fn track_coords(&self, index: u32) -> Coords {
-        todo!()
-    }
-}
-*/
-
 #[component]
 pub fn Circular(
     #[prop(into)] length: Signal<u32>,
@@ -172,13 +164,6 @@ pub fn Figure(
         None => (0, length()),
     };
 
-    let logical_height = f64::from(tracks) * track_height;
-
-    let _viewbox = Memo::new(move |_| {
-        let (start, end) = view_range();
-        format!("{start} 0 {} {logical_height}", end - start)
-    });
-
     Effect::new(move |_| {
         if width.is_none()
             && let Some(elem) = node_ref.get()
@@ -229,16 +214,11 @@ pub fn Figure(
                     let mut new_width = (f64::from(vwidth) * zoom_factor) as u32;
                     new_width = new_width.clamp(min_v, length);
 
-                    //                       let new_pos = (pos as f64 / new_scale) as u32;
-
                     let cursor_offset = new_width / 2;
-                    //let x = pos.saturating_sub(cursor_offset);
 
                     let new_start: u32 = pos.saturating_sub(cursor_offset);
-                    //    .min(length - new_width);
 
                     let new_end = new_start + new_width;
-                    //logging::log!("{new_start} - {new_pos} - {new_end}");
 
                     *s = new_start;
                     *e = new_end;
@@ -260,7 +240,7 @@ pub fn Figure(
     };
 
     let svg_width = Memo::new(move |_| format!("{}px", fig_width()));
-    let svg_viewbox = Memo::new(move |_| {
+    let viewbox = Memo::new(move |_| {
         let (start, end) = viewbox();
         format!("{start} 0 {} {height}", end.saturating_sub(start))
     });
@@ -270,7 +250,7 @@ pub fn Figure(
             node_ref=node_ref
             width=svg_width
             height=format!("{height}px")
-            viewBox=svg_viewbox
+            viewBox=viewbox
             on:wheel=on_wheel
             style="touch-action: none; user-select: none;"
         >
@@ -284,7 +264,6 @@ pub fn Highlight(
     #[prop(into)] top: u32,
     #[prop(into)] bottom: u32,
     #[prop(into)] range: Signal<(u32, u32)>,
-    //    #[prop(default = None, into, optional)] bottom_range: Option<Signal<(u32, u32)>>,
     #[prop(default = Signal::derive(move || Colour::LightGrey), into, optional)] color: Signal<
         Colour,
     >,
@@ -428,7 +407,6 @@ pub fn Label(
     #[prop(default = Signal::derive(move || Colour::Black), into, optional)] color: Signal<Colour>,
     children: Children,
 ) -> impl IntoView {
-    //    let layout = use_context::<Memo<LinearCoords>>().expect("Region must be child of Track");
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Label must be child of Track");
 
     let mapped_pos = Memo::new(move |_| layout.with(|l| l.map_pos(pos())));

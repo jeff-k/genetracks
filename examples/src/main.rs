@@ -3,7 +3,7 @@ use leptos::ev;
 use leptos::prelude::*;
 
 use genetracks::components::{
-    Bar, Circular, Figure, Highlight, Label, Region, Ribbon, Ticks, Track,
+    Bar, Circular, Figure, Highlight, Label, Region, Ribbon, Tick, Ticks, Track,
 };
 use genetracks::elements::{Colour, ElemStyle};
 use genetracks::slider::RangeSlider;
@@ -29,6 +29,30 @@ fn screen_height() -> u32 {
     }
 }
 
+fn restriction_sites() -> impl IntoView {
+    view! {
+       <Track index=2u32>
+           <Tick pos=396u32 label="EcoRI".to_string()/>
+           <Tick pos=402u32 label="SacI".to_string()/>
+           <Tick pos=408u32 label="KpnI".to_string()/>
+           <Tick pos=412u32 label="SmaI".to_string()/>
+           <Tick pos=417u32 label="BamHII".to_string()/>
+           <Tick pos=423u32 label="XbaI".to_string()/>
+           <Tick pos=429u32 label="SalI".to_string()/>
+           <Tick pos=435u32 label="PstI".to_string()/>
+           <Tick pos=441u32 label="SphI".to_string()/>
+           <Tick pos=447u32 label="HindIII".to_string()/>
+
+           // other sites
+           <Tick pos=183u32 label="NdeI".to_string()/>
+           <Tick pos=806u32 label="PciI".to_string()/>
+           <Tick pos=1766u32 label="BsaI".to_string()/>
+           <Tick pos=2177u32 label="ScaI".to_string()/>
+           <Tick pos=2501u32 label="SspI".to_string()/>
+       </Track>
+    }
+}
+
 fn ribbons() -> impl IntoView {
     view! {
         <Ribbon start=(2400u32, 3924u32) end=(12400u32, 12924u32) color=Colour::RoyalBlue />
@@ -40,62 +64,10 @@ fn ribbons() -> impl IntoView {
         />
     }
 }
-/*
-#[component]
-fn GeneIntervals(
-    #[prop(into)] intervals: StoredValue<IntervalTree<u32, String>>,
-    #[prop(into, optional)] range: Option<Signal<(u32, u32)>>,
-) -> impl IntoView {
-    let genes = match range {
-        Some(range) => {
-            Memo::new(move |_| {
-                let range = range();
-                if range.1 - range.0 > 90000 {
-                    return vec![];
-                }
 
-                let q = Range {
-                    start: range.0,
-                    end: range.1,
-                };
-
-                let ovls: Vec<_> = intervals
-                    .get_value()
-                    .iter_overlaps(&q)
-                    .map(|(interval, gene)| (gene.clone(), interval.start, interval.end))
-                    .collect();
-                //logging::log!("interval: {}", ovls.len());
-                ovls
-            })
-        }
-        None => Memo::new(move |_| {
-            intervals
-                .get_value()
-                .iter()
-                .map(|(interval, gene)| (gene.clone(), interval.start, interval.end))
-                .collect()
-        }),
-    };
-
-    view! {
-        <For
-            each=genes
-            key=|(gene, start, end)| format!("{gene}-{start}-{end}")
-            children=move |(gene, start, end)| {
-                let pos = start + ((end - start) / 2);
-                logging::log!("gene: {pos}");
-                view! {
-                    <Bar start=start end=end color=Colour::LightGrey />
-                    <Label pos=pos>{gene}</Label>
-                }
-            }
-        />
-    }
-}
-*/
 #[component]
 fn App() -> impl IntoView {
-    let length: u32 = 54321;
+    let length: u32 = 2686;
     let (width, set_width) = signal::<u32>(screen_width() - 100);
     let (height, set_height) = signal::<u32>(screen_height() - 200);
 
@@ -112,7 +84,7 @@ fn App() -> impl IntoView {
     view! {
         <div class="app-container">
             <div class="header">
-                <h1>"Genome Browser Demo"</h1>
+                <h1>"Genome Browser Demo: "<i>"pUC19"</i></h1>
             </div>
 
             <div class="linear-view">
@@ -133,18 +105,52 @@ fn App() -> impl IntoView {
 
                     <Track index=4u32>
                         <Region
-                            start=0u32
-                            end=length
-                            style=ElemStyle::Left
+                            start=146u32
+                            end=507u32
+                            style=ElemStyle::Right
                             color=Colour::LightBlue
+                        />
+
+                        <Region
+                            start=1629u32
+                            end=2489u32
+                            style=ElemStyle::Left
+                            color=Colour::Salmon
+                        />
+
+                        <Region
+                            start=1158u32
+                            end=1625u32
+                            style=ElemStyle::Right
+                            color=Colour::LightGreen
                         />
                     </Track>
 
-                    <Track index=5u32></Track>
+                    <Track index=5u32>
+                        <Region
+                            start=396u32
+                            end=454u32
+                            style=ElemStyle::Right
+                            color=Colour::Yellow
+                        />
+                        <Region
+                            start=507u32
+                            end=568u32
+                            style=ElemStyle::Left
+                            color=Colour::Purple
+                        />
 
+                        <Region
+                            start=1543u32
+                            end=2431u32
+                            style=ElemStyle::Right
+                            color=Colour::Orange
+                        />
+
+                    </Track>
                     <Track index=3u32></Track>
 
-                    <Track index=2u32>ribbons()</Track>
+                    <Track index=2u32>{restriction_sites()}</Track>
 
                     <Track index=6u32></Track>
 
@@ -171,14 +177,56 @@ fn App() -> impl IntoView {
                             <Ticks n=45u32 range=(0u32, length) />
                         </Track>
 
-                        <Track index=3u32>// edge_3a,279160,LightGrey,-,7071469,7350629
+                        <Track index=3u32>
+                            <Region
+                                start=146u32
+                                end=507u32
+                                style=ElemStyle::Right
+                                color=Colour::LightBlue
+                            ></Region>
+
+                            <Label pos=325u32>"lacZα (β-gal fragment)"</Label>
+
+                            <Region
+                                start=1629u32
+                                end=2489u32
+                                style=ElemStyle::Left
+                                color=Colour::Salmon
+                            />
+
+                            <Label pos=2000u32>"AmpR (ampicillin resistance)"</Label>
+                            <Region
+                                start=1158u32
+                                end=1625u32
+                                style=ElemStyle::Right
+                                color=Colour::LightGreen
+                            />
+
+                            <Label pos=1300u32>"ori (pMB1 origin)"</Label>
                         </Track>
-                        <Track index=2u32></Track>
 
-                        <Track index=4u32></Track>
+                        <Track index=5u32>
+                            <Region
+                                start=396u32
+                                end=454u32
+                                style=ElemStyle::Right
+                                color=Colour::Yellow
+                            />
+                            <Label pos=425u32>"MCS (Multiple Cloning Site)"</Label>
 
-                        <Track index=6u32></Track>
+                            <Region
+                                start=507u32
+                                end=568u32
+                                style=ElemStyle::Left
+                                color=Colour::Purple
+                            />
 
+                            <Label pos=534u32>"lac promotoer"</Label>
+                        </Track>
+
+                        <Track index=2u32>
+                        {restriction_sites()}
+                       </Track>
                     </Circular>
                 </div>
 
