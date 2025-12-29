@@ -12,6 +12,8 @@ pub struct Dims {
 pub enum ElemStyle {
     Left,
     Right,
+    ArrowLeft,
+    ArrowRight,
     //    Bar,
     //    Line,
     #[default]

@@ -138,6 +138,7 @@ impl Layout for LinearCoords {
         let y = self.origin.y;
         let height = self.height;
         let arrow = 10.0 / self.scale;
+        let arrow_head = height * 0.5;
 
         let start_base_top = Point {
             x: start_x + arrow,
@@ -148,6 +149,16 @@ impl Layout for LinearCoords {
             y: y + height,
         };
 
+        let start_wide_base_top = Point {
+            x: start_x + arrow,
+            y: y - arrow_head,
+        };
+
+        let start_wide_base_bottom = Point {
+            x: start_x + arrow,
+            y: y + height + arrow_head,
+        };
+
         let end_base_top = Point {
             x: end_x - arrow,
             y,
@@ -155,6 +166,16 @@ impl Layout for LinearCoords {
         let end_base_bottom = Point {
             x: end_x - arrow,
             y: y + height,
+        };
+
+        let end_wide_base_top = Point {
+            x: end_x - arrow,
+            y: y - arrow_head,
+        };
+
+        let end_wide_base_bottom = Point {
+            x: end_x - arrow,
+            y: y + height + arrow_head,
         };
 
         let start_top = Point { x: start_x, y };
@@ -231,6 +252,50 @@ impl Layout for LinearCoords {
                     )
                 }
             }
+
+            ElemStyle::ArrowLeft => {
+                if (end - start) * self.scale <= 10.0 {
+                    format!(
+                        "M {start_wide_base_top} \
+                            L {start_mid} \
+                            L {start_wide_base_bottom} \
+                            M {start_mid} \
+                            L {end_mid} "
+                    )
+                } else {
+                    format!(
+                        "M {start_wide_base_top} \
+                            L {start_mid} \
+                            L {start_wide_base_bottom} \
+                            M {start_mid} \
+                            L {end_mid} \
+                            M {end_top} \
+                            L {end_bottom}"
+                    )
+                }
+            }
+
+            ElemStyle::ArrowRight => {
+                if (end - start) * self.scale <= 10.0 {
+                    format!(
+                        "M {start_mid} \
+                            L {end_mid} \
+                            M {end_wide_base_top} \
+                            L {end_mid} \
+                            L {end_wide_base_bottom}"
+                    )
+                } else {
+                    format!(
+                        "M {start_top} \
+                            L {start_bottom} \
+                            M {start_mid} \
+                            L {end_mid} \
+                            M {end_wide_base_top} \
+                            L {end_mid} \
+                            L {end_wide_base_bottom}"
+                    )
+                }
+            }
         }
     }
 
@@ -242,6 +307,7 @@ impl Layout for LinearCoords {
         let y = self.origin.y;
         let height = self.height;
         let arrow = 10.0 / self.scale;
+        let arrow_head = height * 0.5;
 
         let start_base_top = Point {
             x: start_x + arrow,
@@ -252,6 +318,16 @@ impl Layout for LinearCoords {
             y: y + height,
         };
 
+        let start_wide_base_top = Point {
+            x: start_x + arrow,
+            y: y - arrow_head,
+        };
+
+        let start_wide_base_bottom = Point {
+            x: start_x + arrow,
+            y: y - arrow_head,
+        };
+
         let end_base_top = Point {
             x: end_x - arrow,
             y,
@@ -259,6 +335,16 @@ impl Layout for LinearCoords {
         let end_base_bottom = Point {
             x: end_x - arrow,
             y: y + height,
+        };
+
+        let end_wide_base_top = Point {
+            x: end_x - arrow,
+            y: y - arrow_head,
+        };
+
+        let end_wide_base_bottom = Point {
+            x: end_x - arrow,
+            y: y + height + arrow_head,
         };
 
         let start_top = Point { x: start_x, y };
@@ -329,6 +415,48 @@ impl Layout for LinearCoords {
                             L {end_base_top} \
                             L {end_mid} \
                             L {end_base_bottom} \
+                            L {start_bottom} \
+                            L {start_top} \
+                            Z"
+                    )
+                }
+            }
+            ElemStyle::ArrowLeft => {
+                if (end - start) * self.scale <= 10.0 {
+                    format!(
+                        "M {start_mid} \
+                            L {start_wide_base_top} \
+                            L {start_wide_base_bottom} \
+                            L {start_mid} \
+                            Z",
+                    )
+                } else {
+                    format!(
+                        "M {start_mid} \
+                            L {start_wide_base_top} \
+                            L {end_top} \
+                            L {end_bottom} \
+                            L {start_wide_base_bottom} \
+                            L {start_mid} \
+                            Z",
+                    )
+                }
+            }
+            ElemStyle::ArrowRight => {
+                if (end - start) * self.scale <= 10.0 {
+                    format!(
+                        "M {end_wide_base_top} \
+                            L {end_mid} \
+                            L {end_wide_base_bottom} \
+                            L {end_wide_base_top} \
+                            Z"
+                    )
+                } else {
+                    format!(
+                        "M {start_top} \
+                            L {end_wide_base_top} \
+                            L {end_mid} \
+                            L {end_wide_base_bottom} \
                             L {start_bottom} \
                             L {start_top} \
                             Z"
@@ -438,6 +566,7 @@ impl Layout for CircularCoords {
         let radius = self.radius;
         let length = self.length;
         let height = self.height;
+        let arrow_head = height * 0.5;
 
         let start_angle = (f64::from(start) / length) * TAU - HALF_PI;
         let end_angle = (f64::from(end) / length) * TAU - HALF_PI;
@@ -461,8 +590,15 @@ impl Layout for CircularCoords {
 
         let start_base_top = mk_point(outer_radius, start_angle + 0.02);
         let start_base_bottom = mk_point(inner_radius, start_angle + 0.02);
+
+        let start_wide_base_top = mk_point(outer_radius - arrow_head, start_angle + 0.02);
+        let start_wide_base_bottom = mk_point(inner_radius - arrow_head, start_angle + 0.02);
+
         let end_base_top = mk_point(outer_radius, end_angle - 0.02);
         let end_base_bottom = mk_point(inner_radius, end_angle - 0.02);
+
+        let end_wide_base_top = mk_point(outer_radius + arrow_head, end_angle - 0.02);
+        let end_wide_base_bottom = mk_point(inner_radius - arrow_head, end_angle - 0.02);
 
         let large_arc_flag = if (end_angle - start_angle).rem_euclid(TAU) <= PI {
             "0"
@@ -524,12 +660,55 @@ impl Layout for CircularCoords {
                     )
                 }
             } //self::circular(coords) => view! { <g></g> },
+            ElemStyle::ArrowLeft => {
+                if end_angle - start_angle <= 0.02 {
+                    format!(
+                        "M {start_wide_base_top} \
+                            L {start_mid} \
+                            L {start_wide_base_bottom} \
+                            M {start_mid} \
+                            A {radius} {radius} 0 {large_arc_flag} 1 {end_mid}"
+                    )
+                } else {
+                    format!(
+                        "M {start_wide_base_top} \
+                            L {start_mid} \
+                            L {start_wide_base_bottom} \
+                            M {start_mid} \
+                            A {radius} {radius} 0 {large_arc_flag} 1 {end_mid} \
+                            M {end_top} \
+                            L {end_bottom}"
+                    )
+                }
+            }
+            ElemStyle::ArrowRight => {
+                if end_angle - start_angle <= 0.02 {
+                    format!(
+                        "M {start_mid} \
+                            A {radius} {radius} 0 {large_arc_flag} 1 {end_mid} \
+                            M {end_wide_base_top} \
+                            L {end_mid} \
+                            L {end_wide_base_bottom}"
+                    )
+                } else {
+                    format!(
+                        "M {start_top} \
+                            L {start_bottom} \
+                            M {start_mid} \
+                            A {radius} {radius} 0 {large_arc_flag} 1 {end_mid} \
+                            M {end_wide_base_top} \
+                            L {end_mid} \
+                            L {end_wide_base_bottom}"
+                    )
+                }
+            }
         }
     }
 
     fn draw_filled(&self, start: u32, end: u32, decoration: ElemStyle) -> String {
         let length = self.length;
         let height = self.height;
+        let arrow_head = self.height * 0.5;
 
         let start_angle = (f64::from(start) / length) * TAU - HALF_PI;
         let end_angle = (f64::from(end) / length) * TAU - HALF_PI;
@@ -553,8 +732,15 @@ impl Layout for CircularCoords {
 
         let start_base_top = mk_point(outer_radius, start_angle + 0.02);
         let start_base_bottom = mk_point(inner_radius, start_angle + 0.02);
+
+        let start_wide_base_top = mk_point(outer_radius + arrow_head, start_angle + 0.02);
+        let start_wide_base_bottom = mk_point(inner_radius - arrow_head, start_angle + 0.02);
+
         let end_base_top = mk_point(outer_radius, end_angle - 0.02);
         let end_base_bottom = mk_point(inner_radius, end_angle - 0.02);
+
+        let end_wide_base_top = mk_point(outer_radius + arrow_head, end_angle - 0.02);
+        let end_wide_base_bottom = mk_point(inner_radius - arrow_head, end_angle - 0.02);
 
         let large_arc_flag = if (end_angle - start_angle).rem_euclid(TAU) <= PI {
             "0"
@@ -610,6 +796,48 @@ impl Layout for CircularCoords {
                             A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_base_top} \
                             L {end_mid} \
                             L {end_base_bottom} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
+                            L {start_top} \
+                            Z"
+                    )
+                }
+            }
+            ElemStyle::ArrowLeft => {
+                if end_angle - start_angle <= 0.02 {
+                    format!(
+                        "M {start_mid} \
+                            L {start_wide_base_top} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_wide_base_bottom} \
+                            L {start_mid} \
+                            Z"
+                    )
+                } else {
+                    format!(
+                        "M {start_mid} \
+                            L {start_wide_base_top} \
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
+                            L {end_bottom} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_wide_base_bottom} \
+                            L {start_mid} \
+                            Z"
+                    )
+                }
+            }
+            ElemStyle::ArrowRight => {
+                if end_angle - start_angle <= 0.02 {
+                    format!(
+                        "M {end_mid} \
+                            L {end_wide_base_top}
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_wide_base_bottom} \
+                            L {end_mid} \
+                            Z"
+                    )
+                } else {
+                    format!(
+                        "M {start_top} \
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_wide_base_top} \
+                            L {end_mid} \
+                            L {end_wide_base_bottom} \
                             A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
                             L {start_top} \
                             Z"
