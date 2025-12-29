@@ -2,7 +2,7 @@ pub use crate::elements::{Colour, ElemStyle, ElementData, TrackData};
 
 use crate::Point;
 use crate::render::{
-    CircularCoords, Layout, LayoutWrapper, LinearCoords, draw_highlight, draw_sector,
+    CircularCoords, Layout, LayoutWrapper, LinearCoords, draw_highlight, draw_sector, svg_arc_path,
 };
 //use leptos::either::Either;
 use leptos::context::Provider;
@@ -15,7 +15,7 @@ use leptos::wasm_bindgen::closure::Closure;
 use leptos::wasm_bindgen::prelude::*;
 use leptos::web_sys::{ResizeObserver, ResizeObserverEntry};
 
-use core::f64::consts::{FRAC_2_PI, PI, TAU};
+//use core::f64::consts::{FRAC_2_PI, PI, TAU};
 use std::sync::atomic::{AtomicU32, Ordering};
 
 static LABEL_ID: AtomicU32 = AtomicU32::new(0);
@@ -425,30 +425,6 @@ pub fn Bar(
     }
 }
 
-fn svg_arc_path(cc: &CircularCoords, start: u32, end: u32, flip: bool) -> String {
-    let radius = cc.radius - (cc.height / 2.0);
-    let start_angle = (f64::from(start) / cc.length) * TAU - FRAC_2_PI;
-    let end_angle = (f64::from(end) / cc.length) * TAU - FRAC_2_PI;
-
-    let start_x = cc.center.x + radius * start_angle.cos();
-    let start_y = cc.center.y + radius * start_angle.sin();
-
-    let end_x = cc.center.x + radius * end_angle.cos();
-    let end_y = cc.center.y + radius * end_angle.sin();
-
-    let large_arc = if end_angle - start_angle > PI {
-        "1"
-    } else {
-        "0"
-    };
-
-    if flip {
-        format!("M {end_x} {end_y} A {radius} {radius} 0 {large_arc} 0 {start_x} {start_y}")
-    } else {
-        format!("M {start_x} {start_y} A {radius} {radius} 0 {large_arc} 1 {end_x} {end_y}")
-    }
-}
-
 #[component]
 pub fn Label(
     #[prop(into)] pos: Signal<u32>,
@@ -485,12 +461,7 @@ pub fn Label(
         layout.with(|l| {
             if let LayoutWrapper::Circular(cc) = l {
                 let pos = pos();
-                let angle = (f64::from(pos) / cc.length) * TAU;
-                if angle > PI {
-                    svg_arc_path(cc, pos.saturating_sub(100), pos + 100, false)
-                } else {
-                    svg_arc_path(cc, pos.saturating_sub(100), pos + 100, true)
-                }
+                svg_arc_path(cc, pos, 100.0)
             } else {
                 String::new()
             }
@@ -505,12 +476,9 @@ pub fn Label(
             </defs>
 
             <text
-                x=move || mapped_pos.with(|p| p.x)
-                y=move || mapped_pos.with(|p| p.y)
                 fill=move || color().to_string()
                 font-size="10"
                 font-family="monospace"
-                transform=transform
             >
                 <textPath
                     href=format!("#{path_id_clone}")

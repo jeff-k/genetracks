@@ -216,7 +216,7 @@ fn App() -> impl IntoView {
                                 style=ElemStyle::Right
                                 color=Colour::YellowGreen
                             />
-                            <Label pos=425u32 curve=false>
+                            <Label pos=425u32 curve=true>
                                 "MCS (Multiple Cloning Site)"
                             </Label>
 

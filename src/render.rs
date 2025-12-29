@@ -1,7 +1,9 @@
 use crate::ElemStyle;
 use crate::Point;
 use crate::components::FigCx;
-use core::f64::consts::PI;
+use core::f64::consts::{PI, TAU};
+
+const HALF_PI: f64 = PI / 2.0;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CircularCoords {
@@ -356,10 +358,10 @@ impl Layout for CircularCoords {
         let (from_start, from_end) = end;
         let (to_start, to_end) = start;
 
-        let from_start_angle = (f64::from(from_start) / self.length) * 2.0 * PI - PI / 2.0;
-        let from_end_angle = (f64::from(from_end) / self.length) * 2.0 * PI - PI / 2.0;
-        let to_start_angle = (f64::from(to_start) / self.length) * 2.0 * PI - PI / 2.0;
-        let to_end_angle = (f64::from(to_end) / self.length) * 2.0 * PI - PI / 2.0;
+        let from_start_angle = (f64::from(from_start) / self.length) * TAU - HALF_PI;
+        let from_end_angle = (f64::from(from_end) / self.length) * TAU - HALF_PI;
+        let to_start_angle = (f64::from(to_start) / self.length) * TAU - HALF_PI;
+        let to_end_angle = (f64::from(to_end) / self.length) * TAU - HALF_PI;
 
         let mk_point = |radius: f64, angle: f64| Point {
             x: self.center.x + radius * angle.cos(),
@@ -385,12 +387,12 @@ impl Layout for CircularCoords {
 
         let to_end_control = mk_point(control, to_end_angle);
 
-        let from_large_arc = if from_end_angle - from_start_angle > PI {
+        let from_large_arc = if (from_end_angle - from_start_angle).rem_euclid(TAU) > PI {
             "1"
         } else {
             "0"
         };
-        let to_large_arc = if to_end_angle - to_start_angle > PI {
+        let to_large_arc = if (to_end_angle - to_start_angle).rem_euclid(TAU) > PI {
             "1"
         } else {
             "0"
@@ -423,7 +425,7 @@ impl Layout for CircularCoords {
         self.center = *center;
     }
     fn map_pos(&self, pos: u32) -> Point {
-        let mid_angle = (f64::from(pos) / self.length) * 2.0 * PI - PI / 2.0;
+        let mid_angle = (f64::from(pos) / self.length) * TAU - HALF_PI;
 
         let radius = self.radius - (self.height / 2.0);
 
@@ -437,8 +439,8 @@ impl Layout for CircularCoords {
         let length = self.length;
         let height = self.height;
 
-        let start_angle = (f64::from(start) / length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (f64::from(end) / length) * 2.0 * PI - PI / 2.0;
+        let start_angle = (f64::from(start) / length) * TAU - HALF_PI;
+        let end_angle = (f64::from(end) / length) * TAU - HALF_PI;
 
         let inner_radius = self.radius - height;
         let mid_radius = self.radius - (height / 2.0);
@@ -462,7 +464,7 @@ impl Layout for CircularCoords {
         let end_base_top = mk_point(outer_radius, end_angle - 0.02);
         let end_base_bottom = mk_point(inner_radius, end_angle - 0.02);
 
-        let large_arc_flag = if end_angle - start_angle <= PI {
+        let large_arc_flag = if (end_angle - start_angle).rem_euclid(TAU) <= PI {
             "0"
         } else {
             "1"
@@ -529,8 +531,8 @@ impl Layout for CircularCoords {
         let length = self.length;
         let height = self.height;
 
-        let start_angle = (f64::from(start) / length) * 2.0 * PI - PI / 2.0;
-        let end_angle = (f64::from(end) / length) * 2.0 * PI - PI / 2.0;
+        let start_angle = (f64::from(start) / length) * TAU - HALF_PI;
+        let end_angle = (f64::from(end) / length) * TAU - HALF_PI;
 
         let inner_radius = self.radius - height;
         let mid_radius = self.radius - (height / 2.0);
@@ -554,7 +556,7 @@ impl Layout for CircularCoords {
         let end_base_top = mk_point(outer_radius, end_angle - 0.02);
         let end_base_bottom = mk_point(inner_radius, end_angle - 0.02);
 
-        let large_arc_flag = if end_angle - start_angle <= PI {
+        let large_arc_flag = if (end_angle - start_angle).rem_euclid(TAU) <= PI {
             "0"
         } else {
             "1"
@@ -623,7 +625,7 @@ impl Layout for CircularCoords {
         let height = self.height;
         let pos = f64::from(pos);
 
-        let mid_angle = (pos / length) * 2.0 * PI - PI / 2.0;
+        let mid_angle = (pos / length) * TAU - HALF_PI;
         let outer_radius = radius;
         let mid_radius = radius - (height / 2.0);
 
@@ -665,8 +667,8 @@ pub fn draw_sector(
     outer_radius: f64,
     inner_radius: f64,
 ) -> String {
-    let start_angle = (start / length) * 2.0 * PI - PI / 2.0;
-    let end_angle = (end / length) * 2.0 * PI - PI / 2.0;
+    let start_angle = (start / length) * TAU - HALF_PI;
+    let end_angle = (end / length) * TAU - HALF_PI;
 
     let start_top = Point {
         x: origin.x + outer_radius * start_angle.cos(),
@@ -688,7 +690,7 @@ pub fn draw_sector(
         y: origin.y + inner_radius * end_angle.sin(),
     };
 
-    let large_arc_flag = if end_angle - start_angle <= PI {
+    let large_arc_flag = if (end_angle - start_angle).rem_euclid(TAU) <= PI {
         "0"
     } else {
         "1"
@@ -701,4 +703,34 @@ pub fn draw_sector(
         A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
         Z"
     )
+}
+
+pub fn svg_arc_path(cc: &CircularCoords, pos: u32, arc_span: f64) -> String {
+    let radius = cc.radius - (cc.height / 2.0);
+
+    let angle = (f64::from(pos) / cc.length) * TAU - HALF_PI;
+    let start_angle = angle - arc_span / 2.0;
+    let end_angle = angle + arc_span / 2.0;
+
+    let (start_x, start_y) = (
+        cc.center.x + radius * start_angle.cos(),
+        cc.center.y + radius * start_angle.sin(),
+    );
+
+    let (end_x, end_y) = (
+        cc.center.x + radius * end_angle.cos(),
+        cc.center.y + radius * end_angle.sin(),
+    );
+
+    let delta = (end_angle - start_angle).rem_euclid(TAU);
+
+    let large_arc = if delta > PI { "1" } else { "0" };
+
+    let sweep = if angle > HALF_PI && angle < 1.5 * PI {
+        "0"
+    } else {
+        "1"
+    };
+
+    format!("M {start_x} {start_y} A {radius} {radius} 0 {large_arc} {sweep} {end_x} {end_y}")
 }
