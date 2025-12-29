@@ -36,10 +36,10 @@ pub fn RangeSlider(
     };
 
     let range_style = move || {
-        let total_width = width() as f64;
-        let scale = max() as f64;
-        let left_pos = (start() as f64 / scale) * total_width;
-        let right_pos = (end() as f64 / scale) * total_width;
+        let total_width = f64::from(width());
+        let scale = f64::from(max());
+        let left_pos = (f64::from(start()) / scale) * total_width;
+        let right_pos = (f64::from(end()) / scale) * total_width;
 
         format!("left: {}px; width: {}px", left_pos, right_pos - left_pos)
     };

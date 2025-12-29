@@ -159,11 +159,6 @@ pub fn Figure(
         circular: false,
     });
 
-    let view_range = move || match view {
-        Some(v) => v(),
-        None => (0, length()),
-    };
-
     Effect::new(move |_| {
         if width.is_none()
             && let Some(elem) = node_ref.get()
@@ -240,7 +235,7 @@ pub fn Figure(
     };
 
     let svg_width = Memo::new(move |_| format!("{}px", fig_width()));
-    let viewbox = Memo::new(move |_| {
+    let svg_viewbox = Memo::new(move |_| {
         let (start, end) = viewbox();
         format!("{start} 0 {} {height}", end.saturating_sub(start))
     });
@@ -250,7 +245,7 @@ pub fn Figure(
             node_ref=node_ref
             width=svg_width
             height=format!("{height}px")
-            viewBox=viewbox
+            viewBox=svg_viewbox
             on:wheel=on_wheel
             style="touch-action: none; user-select: none;"
         >
@@ -308,6 +303,24 @@ pub fn Highlight(
 }
 
 #[component]
+pub fn FigureTitle(children: Children) -> impl IntoView {
+    let cx = use_context::<Memo<FigCx>>().expect("Figure title must be child of circular figure");
+
+    view! {
+        <text
+            x=move || cx.with(|f| f.center.x)
+            y=move || cx.with(|f| f.center.y)
+            text-anchor="middle"
+            dominant-baseline="middle"
+            font-size="14"
+            font-family="sans-serif"
+        >
+            {children()}
+        </text>
+    }
+}
+
+#[component]
 pub fn Track(
     #[prop(into)] index: u32,
     #[prop(optional)] children: Option<ChildrenFn>,
@@ -342,7 +355,7 @@ pub fn Track(
         if cx.with(|f| f.circular) {
             String::new()
         } else {
-            let row = index as f64 * cx.with(|f| f.track_height);
+            let row = index * cx.with(|f| f.track_height);
             format!("translate(0, {row})")
         }
     });

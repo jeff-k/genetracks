@@ -1,9 +1,9 @@
-use core::ops::Range;
+//use core::ops::Range;
 use leptos::ev;
 use leptos::prelude::*;
 
 use genetracks::components::{
-    Bar, Circular, Figure, Highlight, Label, Region, Ribbon, Tick, Ticks, Track,
+    Bar, Circular, Figure, FigureTitle, Highlight, Label, Region, Ribbon, Tick, Ticks, Track,
 };
 use genetracks::elements::{Colour, ElemStyle};
 use genetracks::slider::RangeSlider;
@@ -31,29 +31,31 @@ fn screen_height() -> u32 {
 
 fn restriction_sites() -> impl IntoView {
     view! {
-       <Track index=2u32>
-           <Tick pos=396u32 label="EcoRI".to_string()/>
-           <Tick pos=402u32 label="SacI".to_string()/>
-           <Tick pos=408u32 label="KpnI".to_string()/>
-           <Tick pos=412u32 label="SmaI".to_string()/>
-           <Tick pos=417u32 label="BamHII".to_string()/>
-           <Tick pos=423u32 label="XbaI".to_string()/>
-           <Tick pos=429u32 label="SalI".to_string()/>
-           <Tick pos=435u32 label="PstI".to_string()/>
-           <Tick pos=441u32 label="SphI".to_string()/>
-           <Tick pos=447u32 label="HindIII".to_string()/>
+        <Track index=2u32>
+            <Tick pos=396u32 label="EcoRI".to_string() />
+            <Tick pos=402u32 label="SacI".to_string() />
+            <Tick pos=408u32 label="KpnI".to_string() />
+            <Tick pos=412u32 label="SmaI".to_string() />
+            <Tick pos=417u32 label="BamHII".to_string() />
+            <Tick pos=423u32 label="XbaI".to_string() />
+            <Tick pos=429u32 label="SalI".to_string() />
+            <Tick pos=435u32 label="PstI".to_string() />
+            <Tick pos=441u32 label="SphI".to_string() />
+            <Tick pos=447u32 label="HindIII".to_string() />
 
-           // other sites
-           <Tick pos=183u32 label="NdeI".to_string()/>
-           <Tick pos=806u32 label="PciI".to_string()/>
-           <Tick pos=1766u32 label="BsaI".to_string()/>
-           <Tick pos=2177u32 label="ScaI".to_string()/>
-           <Tick pos=2501u32 label="SspI".to_string()/>
-       </Track>
+            // other sites
+            <Tick pos=183u32 label="NdeI".to_string() />
+            <Tick pos=806u32 label="PciI".to_string() />
+            <Tick pos=1766u32 label="BsaI".to_string() />
+            <Tick pos=2177u32 label="ScaI".to_string() />
+            <Tick pos=2501u32 label="SspI".to_string() />
+
+            <Bar start=500u32 end=1000u32 />
+        </Track>
     }
 }
 
-fn ribbons() -> impl IntoView {
+fn _ribbons() -> impl IntoView {
     view! {
         <Ribbon start=(2400u32, 3924u32) end=(12400u32, 12924u32) color=Colour::RoyalBlue />
 
@@ -167,6 +169,10 @@ fn App() -> impl IntoView {
                 <div class="circular-figure">
                     <Circular length=length width=height>
 
+                        <FigureTitle>
+                            <tspan font-weight="bold">pUC19</tspan>
+                            " (β-gal fragment)"
+                        </FigureTitle>
                         <Highlight range=view_range top=0u32 bottom=6u32 color=Colour::Yellow />
 
                         <Track index=0u32>
@@ -185,7 +191,10 @@ fn App() -> impl IntoView {
                                 color=Colour::LightBlue
                             ></Region>
 
-                            <Label pos=325u32>"lacZα (β-gal fragment)"</Label>
+                            <Label pos=325u32>
+                                <tspan font-weight="bold">lacZα</tspan>
+                                "(β-gal fragment)"
+                            </Label>
 
                             <Region
                                 start=1629u32
@@ -224,9 +233,7 @@ fn App() -> impl IntoView {
                             <Label pos=534u32>"lac promotoer"</Label>
                         </Track>
 
-                        <Track index=2u32>
-                        {restriction_sites()}
-                       </Track>
+                        <Track index=2u32>{restriction_sites()}</Track>
                     </Circular>
                 </div>
 
