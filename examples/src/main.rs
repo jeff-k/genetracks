@@ -124,7 +124,7 @@ fn App() -> impl IntoView {
                             start=1158u32
                             end=1625u32
                             style=ElemStyle::Right
-                            color=Colour::LightGreen
+                            color=Colour::YellowGreen
                         />
                     </Track>
 
@@ -133,14 +133,9 @@ fn App() -> impl IntoView {
                             start=396u32
                             end=454u32
                             style=ElemStyle::Right
-                            color=Colour::Yellow
+                            color=Colour::MediumAquamarine
                         />
-                        <Region
-                            start=507u32
-                            end=568u32
-                            style=ElemStyle::Left
-                            color=Colour::Purple
-                        />
+                        <Region start=507u32 end=568u32 style=ElemStyle::Left color=Colour::Plum />
 
                         <Region
                             start=1543u32
@@ -188,7 +183,7 @@ fn App() -> impl IntoView {
                                 start=146u32
                                 end=507u32
                                 style=ElemStyle::Right
-                                color=Colour::LightBlue
+                                color=Colour::Orange
                             ></Region>
 
                             <Label pos=325u32>
@@ -208,7 +203,7 @@ fn App() -> impl IntoView {
                                 start=1158u32
                                 end=1625u32
                                 style=ElemStyle::Right
-                                color=Colour::LightGreen
+                                color=Colour::MediumAquamarine
                             />
 
                             <Label pos=1300u32>"ori (pMB1 origin)"</Label>
@@ -219,15 +214,17 @@ fn App() -> impl IntoView {
                                 start=396u32
                                 end=454u32
                                 style=ElemStyle::Right
-                                color=Colour::Yellow
+                                color=Colour::YellowGreen
                             />
-                            <Label pos=425u32>"MCS (Multiple Cloning Site)"</Label>
+                            <Label pos=425u32 curve=false>
+                                "MCS (Multiple Cloning Site)"
+                            </Label>
 
                             <Region
                                 start=507u32
                                 end=568u32
                                 style=ElemStyle::Left
-                                color=Colour::Purple
+                                color=Colour::Plum
                             />
 
                             <Label pos=534u32>"lac promotoer"</Label>

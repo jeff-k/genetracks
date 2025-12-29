@@ -8,12 +8,23 @@ use crate::render::{
 use leptos::context::Provider;
 use leptos::ev::MouseEvent;
 use leptos::ev::WheelEvent;
-//use leptos::logging;
+use leptos::logging;
 use leptos::prelude::*;
 use leptos::svg;
 use leptos::wasm_bindgen::closure::Closure;
 use leptos::wasm_bindgen::prelude::*;
 use leptos::web_sys::{ResizeObserver, ResizeObserverEntry};
+
+use core::f64::consts::{FRAC_2_PI, PI, TAU};
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static LABEL_ID: AtomicU32 = AtomicU32::new(0);
+
+fn next_label_id() -> String {
+    let id = LABEL_ID.fetch_add(1, Ordering::Relaxed);
+    logging::log!("label-path-{id}");
+    format!("label-path-{id}")
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct FigCx {
@@ -414,9 +425,34 @@ pub fn Bar(
     }
 }
 
+fn svg_arc_path(cc: &CircularCoords, start: u32, end: u32, flip: bool) -> String {
+    let radius = cc.radius - (cc.height / 2.0);
+    let start_angle = (f64::from(start) / cc.length) * TAU - FRAC_2_PI;
+    let end_angle = (f64::from(end) / cc.length) * TAU - FRAC_2_PI;
+
+    let start_x = cc.center.x + radius * start_angle.cos();
+    let start_y = cc.center.y + radius * start_angle.sin();
+
+    let end_x = cc.center.x + radius * end_angle.cos();
+    let end_y = cc.center.y + radius * end_angle.sin();
+
+    let large_arc = if end_angle - start_angle > PI {
+        "1"
+    } else {
+        "0"
+    };
+
+    if flip {
+        format!("M {end_x} {end_y} A {radius} {radius} 0 {large_arc} 0 {start_x} {start_y}")
+    } else {
+        format!("M {start_x} {start_y} A {radius} {radius} 0 {large_arc} 1 {end_x} {end_y}")
+    }
+}
+
 #[component]
 pub fn Label(
     #[prop(into)] pos: Signal<u32>,
+    #[prop(default = true)] curve: bool,
     #[prop(default = Signal::derive(move || Colour::Black), into, optional)] color: Signal<Colour>,
     children: Children,
 ) -> impl IntoView {
@@ -438,19 +474,73 @@ pub fn Label(
         })
     });
 
-    view! {
-        <text
-            x=move || mapped_pos.with(|p| p.x)
-            y=move || mapped_pos.with(|p| p.y)
-            text-anchor="middle"
-            dominant-baseline="middle"
-            fill=move || color().to_string()
-            font-size="10"
-            font-family="monospace"
-            transform=transform
-        >
-            {children()}
-        </text>
+    let path_id = next_label_id();
+    let path_id_clone = path_id.clone();
+
+    let circular: bool = layout.with(|l| matches!(l, LayoutWrapper::Circular(_)));
+
+    let use_curve = circular && curve;
+
+    let curve_path = Memo::new(move |_| {
+        layout.with(|l| {
+            if let LayoutWrapper::Circular(cc) = l {
+                let pos = pos();
+                let angle = (f64::from(pos) / cc.length) * TAU;
+                if angle > PI {
+                    svg_arc_path(cc, pos.saturating_sub(100), pos + 100, false)
+                } else {
+                    svg_arc_path(cc, pos.saturating_sub(100), pos + 100, true)
+                }
+            } else {
+                String::new()
+            }
+        })
+    });
+
+    if use_curve {
+        logging::log!("label_id: {}, path: {}", path_id.clone(), curve_path());
+        view! {
+            <defs>
+                <path id=path_id.clone() d=curve_path file="none" />
+            </defs>
+
+            <text
+                x=move || mapped_pos.with(|p| p.x)
+                y=move || mapped_pos.with(|p| p.y)
+                fill=move || color().to_string()
+                font-size="10"
+                font-family="monospace"
+                transform=transform
+            >
+                <textPath
+                    href=format!("#{path_id_clone}")
+                    startOffset="50%"
+                    text-anchor="middle"
+                    dominant-baseline="middle"
+                >
+
+                    {children()}
+                </textPath>
+            </text>
+        }
+        .into_any()
+    } else {
+        view! {
+            <text
+                x=move || mapped_pos.with(|p| p.x)
+                y=move || mapped_pos.with(|p| p.y)
+                fill=move || color().to_string()
+                font-size="10"
+                font-family="monospace"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                transform=transform
+            >
+
+                {children()}
+            </text>
+        }
+        .into_any()
     }
 }
 
