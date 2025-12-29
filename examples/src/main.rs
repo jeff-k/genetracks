@@ -1,5 +1,6 @@
 //use core::ops::Range;
 use leptos::ev;
+use leptos::logging;
 use leptos::prelude::*;
 
 use genetracks::components::{
@@ -74,6 +75,7 @@ fn App() -> impl IntoView {
     let (height, set_height) = signal::<u32>(screen_height() - 200);
 
     let _width_handle = window_event_listener(ev::resize, move |_| {
+        logging::log!("resized width to {}", screen_width());
         set_width(screen_width() - 100);
     });
 
@@ -162,7 +164,7 @@ fn App() -> impl IntoView {
             </div>
             <div class="circular-view">
                 <div class="circular-figure">
-                    <Circular length=length width=height>
+                    <Circular length=length>
 
                         <FigureTitle>
                             <tspan font-weight="bold">pUC19</tspan>
@@ -186,11 +188,6 @@ fn App() -> impl IntoView {
                                 color=Colour::Orange
                             ></Region>
 
-                            <Label pos=325u32>
-                                <tspan font-weight="bold">lacZα</tspan>
-                                "(β-gal fragment)"
-                            </Label>
-
                             <Region
                                 start=1629u32
                                 end=2489u32
@@ -198,7 +195,6 @@ fn App() -> impl IntoView {
                                 color=Colour::Salmon
                             />
 
-                            <Label pos=2000u32>"AmpR (ampicillin resistance)"</Label>
                             <Region
                                 start=1158u32
                                 end=1625u32
@@ -206,7 +202,13 @@ fn App() -> impl IntoView {
                                 color=Colour::MediumAquamarine
                             />
 
-                            <Label pos=1300u32>"ori (pMB1 origin)"</Label>
+                            <Label pos=325u32>
+                                <tspan font-weight="bold">lacZα</tspan>
+                                "(β-gal fragment)"
+                            </Label>
+
+                            <Label pos=2100u32>"AmpR (ampicillin resistance)"</Label>
+                            <Label pos=1400u32>"ori (pMB1 origin)"</Label>
                         </Track>
 
                         <Track index=5u32>
@@ -216,16 +218,16 @@ fn App() -> impl IntoView {
                                 style=ElemStyle::Right
                                 color=Colour::YellowGreen
                             />
-                            <Label pos=425u32 curve=true>
-                                "MCS (Multiple Cloning Site)"
-                            </Label>
-
                             <Region
                                 start=507u32
                                 end=568u32
                                 style=ElemStyle::Left
                                 color=Colour::Plum
                             />
+
+                            <Label pos=425u32 curve=false>
+                                "MCS (Multiple Cloning Site)"
+                            </Label>
 
                             <Label pos=534u32>"lac promotoer"</Label>
                         </Track>

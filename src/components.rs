@@ -88,7 +88,7 @@ pub fn Circular(
 
     Effect::new(move |_| {
         if width.is_none() {
-            //logging::log!("creating width effect");
+            logging::log!("creating width effect");
             if let Some(elem) = node_ref.get()
                 && let Some(parent) = elem.parent_element()
             {
@@ -116,7 +116,10 @@ pub fn Circular(
         }
     });
 
-    let width = Memo::new(move |_| cx().view_width());
+    let width = Memo::new(move |_| {
+        logging::log!("changing width {}", cx().view_width());
+        cx().view_width()
+    });
     let height = Memo::new(move |_| cx().view_height());
     let view_box = Memo::new(move |_| cx().viewbox());
 
@@ -461,7 +464,7 @@ pub fn Label(
         layout.with(|l| {
             if let LayoutWrapper::Circular(cc) = l {
                 let pos = pos();
-                svg_arc_path(cc, pos, 100.0)
+                svg_arc_path(cc, pos, 200.0)
             } else {
                 String::new()
             }
@@ -475,11 +478,7 @@ pub fn Label(
                 <path id=path_id.clone() d=curve_path file="none" />
             </defs>
 
-            <text
-                fill=move || color().to_string()
-                font-size="10"
-                font-family="monospace"
-            >
+            <text fill=move || color().to_string() font-size="10" font-family="monospace">
                 <textPath
                     href=format!("#{path_id_clone}")
                     startOffset="50%"

@@ -709,8 +709,9 @@ pub fn svg_arc_path(cc: &CircularCoords, pos: u32, arc_span: f64) -> String {
     let radius = cc.radius - (cc.height / 2.0);
 
     let angle = (f64::from(pos) / cc.length) * TAU - HALF_PI;
-    let start_angle = angle - arc_span / 2.0;
-    let end_angle = angle + arc_span / 2.0;
+    let span = (arc_span / cc.length) * TAU;
+    let start_angle = angle - span / 2.0;
+    let end_angle = angle + span / 2.0;
 
     let (start_x, start_y) = (
         cc.center.x + radius * start_angle.cos(),
@@ -726,11 +727,9 @@ pub fn svg_arc_path(cc: &CircularCoords, pos: u32, arc_span: f64) -> String {
 
     let large_arc = if delta > PI { "1" } else { "0" };
 
-    let sweep = if angle > HALF_PI && angle < 1.5 * PI {
-        "0"
+    if angle > 0.0 && angle < PI {
+        format!("M {end_x} {end_y} A {radius} {radius} 0 {large_arc} 0 {start_x} {start_y}")
     } else {
-        "1"
-    };
-
-    format!("M {start_x} {start_y} A {radius} {radius} 0 {large_arc} {sweep} {end_x} {end_y}")
+        format!("M {start_x} {start_y} A {radius} {radius} 0 {large_arc} 1 {end_x} {end_y}")
+    }
 }
