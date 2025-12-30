@@ -115,14 +115,14 @@ fn App() -> impl IntoView {
                             color=Colour::LightBlue
                         />
 
-                        <Bar
+                        <Region
                             start=1629u32
                             end=2489u32
                             style=ElemStyle::ArrowLeft
                             color=Colour::Salmon
                         />
 
-                        <Bar
+                        <Region
                             start=1158u32
                             end=1625u32
                             style=ElemStyle::ArrowRight
@@ -134,7 +134,7 @@ fn App() -> impl IntoView {
                         <Region
                             start=396u32
                             end=454u32
-                            style=ElemStyle::Right
+                            style=ElemStyle::ArrowLeft
                             color=Colour::MediumAquamarine
                         />
                         <Region start=507u32 end=568u32 style=ElemStyle::Left color=Colour::Plum />
@@ -142,7 +142,7 @@ fn App() -> impl IntoView {
                         <Region
                             start=1543u32
                             end=2431u32
-                            style=ElemStyle::Right
+                            style=ElemStyle::ArrowRight
                             color=Colour::Orange
                         />
 

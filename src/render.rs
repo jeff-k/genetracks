@@ -434,8 +434,10 @@ impl Layout for LinearCoords {
                     format!(
                         "M {start_mid} \
                             L {start_wide_base_top} \
+                            L {start_base_top} \
                             L {end_top} \
                             L {end_bottom} \
+                            L {start_base_bottom} \
                             L {start_wide_base_bottom} \
                             L {start_mid} \
                             Z",
@@ -454,9 +456,11 @@ impl Layout for LinearCoords {
                 } else {
                     format!(
                         "M {start_top} \
+                            L {end_base_top} \
                             L {end_wide_base_top} \
                             L {end_mid} \
                             L {end_wide_base_bottom} \
+                            L {end_base_bottom} \
                             L {start_bottom} \
                             L {start_top} \
                             Z"
@@ -815,9 +819,11 @@ impl Layout for CircularCoords {
                     format!(
                         "M {start_mid} \
                             L {start_wide_base_top} \
+                            L {start_base_top} \
                             A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
                             L {end_bottom} \
-                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_wide_base_bottom} \
+                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_base_bottom} \
+                            L {start_wide_base_bottom} \
                             L {start_mid} \
                             Z"
                     )
@@ -835,9 +841,11 @@ impl Layout for CircularCoords {
                 } else {
                     format!(
                         "M {start_top} \
-                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_wide_base_top} \
+                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_base_top} \
+                            L {end_wide_base_top} \
                             L {end_mid} \
                             L {end_wide_base_bottom} \
+                            L {end_base_bottom} \
                             A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
                             L {start_top} \
                             Z"
