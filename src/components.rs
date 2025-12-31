@@ -572,6 +572,7 @@ pub fn Region(
             <path
                 d=move || { layout.with(|l| l.draw_filled(start(), end(), style)) }
                 fill=move || color().to_string()
+                stroke="black"
                 vector-effect="non-scaling-stroke"
                 on:mouseenter=handle_enter
                 on:mouseleave=handle_leave

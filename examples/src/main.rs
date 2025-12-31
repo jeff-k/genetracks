@@ -32,27 +32,99 @@ fn screen_height() -> u32 {
 
 fn restriction_sites() -> impl IntoView {
     view! {
-        <Track index=2u32>
-            <Tick pos=396u32 label="EcoRI".to_string() />
-            <Tick pos=402u32 label="SacI".to_string() />
-            <Tick pos=408u32 label="KpnI".to_string() />
-            <Tick pos=412u32 label="SmaI".to_string() />
-            <Tick pos=417u32 label="BamHII".to_string() />
-            <Tick pos=423u32 label="XbaI".to_string() />
-            <Tick pos=429u32 label="SalI".to_string() />
-            <Tick pos=435u32 label="PstI".to_string() />
-            <Tick pos=441u32 label="SphI".to_string() />
-            <Tick pos=447u32 label="HindIII".to_string() />
+        <Tick pos=2550u32 />
+        <Tick pos=2655u32 />
+        <Tick pos=265932 />
+        <Tick pos=273u32 />
+        <Tick pos=390u32 />
+        <Tick pos=632u32 />
+        <Tick pos=637u32 />
+        <Tick pos=683u32 />
+        <Tick pos=844u32 />
+        <Tick pos=848u32 />
 
-            // other sites
-            <Tick pos=183u32 label="NdeI".to_string() />
-            <Tick pos=806u32 label="PciI".to_string() />
-            <Tick pos=1766u32 label="BsaI".to_string() />
-            <Tick pos=2177u32 label="ScaI".to_string() />
-            <Tick pos=2501u32 label="SspI".to_string() />
+        // other sites
+        <Tick pos=1032u32 />
+        <Tick pos=1091u32 />
+        <Tick pos=1150u32 />
+        <Tick pos=1266u32 />
+        <Tick pos=1471u32 />
+        <Tick pos=1590u32 />
+        <Tick pos=1673u32 />
+        <Tick pos=1924u32 />
+        <Tick pos=1986u32 />
+        <Tick pos=2002u32 />
+        <Tick pos=2071u32 />
+    }
+}
 
-            <Bar start=500u32 end=1000u32 />
-        </Track>
+fn restriction_site_labels() -> impl IntoView {
+    view! {
+        <Label pos=2550u32 curve=false>
+            "AlwNI"
+        </Label>
+        <Label pos=2655u32 curve=false>
+            "BseYI"
+        </Label>
+        <Label pos=2659u32 curve=false>
+            "PspFI"
+        </Label>
+        <Label pos=273u32 curve=false>
+            "AflIII"
+        </Label>
+        <Label pos=390u32 curve=false>
+            "BspQI"
+        </Label>
+        <Label pos=632u32 curve=false>
+            "HindIII"
+        </Label>
+        <Label pos=637u32 curve=false>
+            "BfuAI"
+        </Label>
+        <Label pos=683u32 curve=false>
+            "ApoI"
+        </Label>
+        <Label pos=844u32 curve=false>
+            "KasI"
+        </Label>
+        <Label pos=848u32 curve=false>
+            "PluTI"
+        </Label>
+
+        // other sites
+        <Label pos=1032u32 curve=false>
+            "PfoI"
+        </Label>
+        <Label pos=1091u32 curve=false>
+            "EcoO109I"
+        </Label>
+        <Label pos=1150u32 curve=false>
+            "ZraI"
+        </Label>
+        <Label pos=1266u32 curve=false>
+            "SspI"
+        </Label>
+        <Label pos=1471u32 curve=false>
+            "XmnI"
+        </Label>
+        <Label pos=1590u32 curve=false>
+            "ScaI"
+        </Label>
+        <Label pos=1673u32 curve=false>
+            "TsoI"
+        </Label>
+        <Label pos=1924u32 curve=false>
+            "NmeAIII"
+        </Label>
+        <Label pos=1986u32 curve=false>
+            "BsrFI"
+        </Label>
+        <Label pos=2002u32 curve=false>
+            "BpmI"
+        </Label>
+        <Label pos=2071u32 curve=false>
+            "AhdI"
+        </Label>
     }
 }
 
@@ -147,11 +219,21 @@ fn App() -> impl IntoView {
                         />
 
                     </Track>
-                    <Track index=3u32></Track>
+                    <Track index=3u32>
+                        <Region start=1u32 end=length style=ElemStyle::Line color=Colour::Black />
+                    </Track>
 
-                    <Track index=2u32>{restriction_sites()}</Track>
+                    <Track index=2u32>
 
-                    <Track index=6u32></Track>
+                        <Region
+                            start=1u32
+                            end=length
+                            style=ElemStyle::DoubleLine
+                            color=Colour::Black
+                        />
+                    </Track>
+
+                    <Track index=3u32>{restriction_sites()} {restriction_site_labels()}</Track>
 
                 </Figure>
                 <RangeSlider
@@ -172,67 +254,94 @@ fn App() -> impl IntoView {
                         </FigureTitle>
                         <Highlight range=view_range top=0u32 bottom=6u32 color=Colour::Yellow />
 
-                        <Track index=0u32>
+                        <Track index=4u32>
                             <Ticks n=15u32 range=(0u32, length) text=true />
                         </Track>
 
-                        <Track index=1u32>
+                        <Track index=5u32>
                             <Ticks n=45u32 range=(0u32, length) />
+                            <Bar
+                                start=1u32
+                                end=length
+                                style=ElemStyle::DoubleLine
+                                color=Colour::Black
+                            />
                         </Track>
 
-                        <Track index=3u32>
+                        <Track index=7u32>
+                            <Bar start=1285u32 end=2144u32 style=ElemStyle::Right />
+                        </Track>
+                        <Track index=8u32>
+                            <Label pos=515u32>"CAP binding"</Label>
+                        </Track>
+                        <Track index=10u32>
                             <Region
-                                start=146u32
-                                end=507u32
-                                style=ElemStyle::Right
-                                color=Colour::Orange
+                                start=2315u32
+                                end=217u32
+                                style=ElemStyle::ArrowRight
+                                color=Colour::Yellow
                             ></Region>
 
                             <Region
-                                start=1629u32
-                                end=2489u32
-                                style=ElemStyle::Left
-                                color=Colour::Salmon
-                            />
-
-                            <Region
-                                start=1158u32
-                                end=1625u32
-                                style=ElemStyle::Right
+                                start=505u32
+                                end=526u32
+                                style=ElemStyle::None
                                 color=Colour::MediumAquamarine
                             />
 
-                            <Label pos=325u32>
-                                <tspan font-weight="bold">lacZα</tspan>
-                                "(β-gal fragment)"
-                            </Label>
-
-                            <Label pos=2100u32>"AmpR (ampicillin resistance)"</Label>
-                            <Label pos=1400u32>"ori (pMB1 origin)"</Label>
-                        </Track>
-
-                        <Track index=5u32>
                             <Region
-                                start=396u32
-                                end=454u32
+                                start=541u32
+                                end=571u32
                                 style=ElemStyle::ArrowRight
-                                color=Colour::YellowGreen
+                                color=Colour::White
                             />
+
                             <Region
-                                start=507u32
-                                end=568u32
-                                style=ElemStyle::ArrowLeft
+                                start=579u32
+                                end=595u32
+                                style=ElemStyle::None
+                                color=Colour::MediumAquamarine
+                            />
+
+                            <Region
+                                start=615u32
+                                end=938u32
+                                style=ElemStyle::ArrowRight
                                 color=Colour::Plum
                             />
 
-                            <Label pos=425u32 curve=false>
-                                "MCS (Multiple Cloning Site)"
-                            </Label>
+                            <Region
+                                start=1179u32
+                                end=1283u32
+                                style=ElemStyle::ArrowRight
+                                color=Colour::White
+                            />
 
-                            <Label pos=534u32>"lac promotoer"</Label>
+                            <Region
+                                start=1284u32
+                                end=2144u32
+                                style=ElemStyle::ArrowRight
+                                color=Colour::LightGreen
+                            />
+
                         </Track>
 
-                        <Track index=2u32>{restriction_sites()}</Track>
+                        <Track index=12u32>
+                            <Label pos=750u32>
+                                <tspan font-weight="bold">lacZα</tspan>
+                                " (β-gal frag.)"
+                            </Label>
+
+                            <Label pos=1700u32>
+                                <tspan font-weight="bold">AmpR</tspan>
+                            </Label>
+                            <Label pos=2650u32>"ori (pMB1 origin)"</Label>
+
+                            <Label pos=550u32>"lac promoter"</Label>
+                        </Track>
+
+                        <Track index=1u32>{restriction_site_labels()}</Track>
+                        <Track index=3u32>{restriction_sites()}</Track>
                     </Circular>
                 </div>
 

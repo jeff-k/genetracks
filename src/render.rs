@@ -105,7 +105,7 @@ impl Layout for LinearCoords {
             "M {start_top} \
                             L {start_bottom} \
                             L {end_bottom} \
-                            L {end_top}" //                            M {end_top}"
+                            L {end_top}"
         )
     }
     fn update(&mut self, cx: &FigCx, index: f64) {
@@ -209,7 +209,12 @@ impl Layout for LinearCoords {
                             L {end_bottom}"
                 )
             }
-
+            ElemStyle::Line => {
+                format!("")
+            }
+            ElemStyle::DoubleLine => {
+                format!("")
+            }
             ElemStyle::Left => {
                 if (end - start) * self.scale <= 10.0 {
                     format!(
@@ -378,6 +383,12 @@ impl Layout for LinearCoords {
                 )
             }
 
+            ElemStyle::Line => {
+                format!("M {start_mid} L {end_mid} Z")
+            }
+            ElemStyle::DoubleLine => {
+                format!("M {start_top} L {end_top} M {start_bottom} L {end_bottom} Z")
+            }
             ElemStyle::Left => {
                 if (end - start) * self.scale <= 10.0 {
                     format!(
@@ -622,6 +633,16 @@ impl Layout for CircularCoords {
                 )
             }
 
+            ElemStyle::Line => {
+                format!(
+                    "M {start_mid} A {inner_radius} {inner_radius} 0 {large_arc_flag} 1 {end_mid}"
+                )
+            }
+            ElemStyle::DoubleLine => {
+                format!(
+                    "M {start_mid} A {mid_radius} {mid_radius} 0 {large_arc_flag} 1 {end_mid} M {start_bottom} A {inner_radius} {inner_radius} 0 {large_arc_flag} 1 {end_bottom}"
+                )
+            }
             ElemStyle::Left => {
                 if end_angle - start_angle <= 0.02 {
                     format!(
@@ -663,7 +684,7 @@ impl Layout for CircularCoords {
                             L {end_base_bottom}"
                     )
                 }
-            } //self::circular(coords) => view! { <g></g> },
+            }
             ElemStyle::ArrowLeft => {
                 if end_angle - start_angle <= 0.02 {
                     format!(
@@ -710,12 +731,29 @@ impl Layout for CircularCoords {
     }
 
     fn draw_filled(&self, start: u32, end: u32, decoration: ElemStyle) -> String {
-        let length = self.length;
+        let length = f64::from(self.length);
         let height = self.height;
         let arrow_head = self.height * 0.5;
 
+        let start = f64::from(start);
+        let end = f64::from(end);
+
         let start_angle = (f64::from(start) / length) * TAU - HALF_PI;
-        let end_angle = (f64::from(end) / length) * TAU - HALF_PI;
+        //        let end_angle = (f64::from(end) / length) * TAU - HALF_PI;
+
+        let full_circle = f64::from(start) == 0.0 && f64::from(end) == length;
+        let end_mod = if end == length { 0.0 } else { end };
+
+        let span_bp: f64 = if full_circle {
+            length
+        } else if end_mod >= start {
+            end_mod - start
+        } else {
+            length - start + end_mod
+        };
+
+        let span_angle = (f64::from(span_bp) / length) * TAU;
+        let end_angle = start_angle + span_angle;
 
         let inner_radius = self.radius - height;
         let mid_radius = self.radius - (height / 2.0);
@@ -746,11 +784,9 @@ impl Layout for CircularCoords {
         let end_wide_base_top = mk_point(outer_radius + arrow_head, end_angle - 0.02);
         let end_wide_base_bottom = mk_point(inner_radius - arrow_head, end_angle - 0.02);
 
-        let large_arc_flag = if (end_angle - start_angle).rem_euclid(TAU) <= PI {
-            "0"
-        } else {
-            "1"
-        };
+        let large_arc_flag = if span_angle <= PI { "0" } else { "1" };
+
+        let is_tiny = span_angle <= 0.02;
 
         match decoration {
             ElemStyle::None => {
@@ -763,6 +799,14 @@ impl Layout for CircularCoords {
                 )
             }
 
+            ElemStyle::Line => {
+                format!(
+                    "M {start_mid} A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {end_mid} Z"
+                )
+            }
+            ElemStyle::DoubleLine => {
+                format!("")
+            }
             ElemStyle::Left => {
                 if end_angle - start_angle <= 0.02 {
                     format!(

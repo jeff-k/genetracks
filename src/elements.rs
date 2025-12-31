@@ -14,12 +14,10 @@ pub enum ElemStyle {
     Right,
     ArrowLeft,
     ArrowRight,
-    //    Bar,
-    //    Line,
+    Line,
+    DoubleLine,
     #[default]
     None,
-    //    Tick,
-    //    Spacer,
 }
 
 #[derive(Default, Debug, Copy, Clone, PartialEq)]
