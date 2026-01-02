@@ -13,7 +13,7 @@ use leptos::prelude::*;
 use leptos::svg;
 use leptos::wasm_bindgen::closure::Closure;
 use leptos::wasm_bindgen::prelude::*;
-use leptos::web_sys::{ResizeObserver, ResizeObserverEntry};
+use leptos::web_sys::{DragEvent, Event, ResizeObserver, ResizeObserverEntry};
 
 //use core::f64::consts::{FRAC_2_PI, PI, TAU};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -124,7 +124,21 @@ pub fn Circular(
     let view_box = Memo::new(move |_| cx().viewbox());
 
     view! {
-        <svg node_ref=node_ref width=width height=height viewBox=view_box>
+        <svg
+            node_ref=node_ref
+            width=width
+            height=height
+            viewBox=view_box
+            // on:wheel=on_wheel
+            on:dragstart=|ev: DragEvent| ev.prevent_default()
+            on:selectstart=|ev: Event| ev.prevent_default()
+            draggable="false"
+            style="touch-action: none; \
+            user-select: none; \
+            -webkit-user-select: none; \
+            -webkit-user-drag: none; \
+            -webkit-tap-highlight-color: transparent;"
+        >
             <Provider value=cx>{children.map(|children_fn| children_fn())}</Provider>
         </svg>
     }
@@ -433,12 +447,31 @@ pub fn Label(
     #[prop(into)] pos: Signal<u32>,
     #[prop(default = true)] curve: bool,
     #[prop(default = Signal::derive(move || Colour::Black), into, optional)] color: Signal<Colour>,
+    #[prop(optional)] on_click: Option<Callback<u32>>,
+    #[prop(optional)] on_hover: Option<Callback<bool>>,
     children: Children,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Label must be child of Track");
 
     let mapped_pos = Memo::new(move |_| layout.with(|l| l.map_pos(pos())));
 
+    let handle_leave = move |_: MouseEvent| {
+        if let Some(cb) = on_hover {
+            cb.run(false);
+        }
+    };
+
+    let handle_enter = move |_: MouseEvent| {
+        if let Some(cb) = on_hover {
+            cb.run(true);
+        }
+    };
+
+    let on_click = move |_| {
+        if let Some(cb) = on_click {
+            cb.run(0);
+        }
+    };
     let transform = Memo::new(move |_| {
         layout.with(|l| match l {
             LayoutWrapper::Linear(lc) => {
@@ -484,6 +517,9 @@ pub fn Label(
                     startOffset="50%"
                     text-anchor="middle"
                     dominant-baseline="middle"
+                    on:mouseenter=handle_enter
+                    on:mouseleave=handle_leave
+                    on:click=on_click
                 >
 
                     {children()}
@@ -543,6 +579,7 @@ pub fn Region(
     #[prop(default = Signal::derive(move || Colour::LightGrey), into, optional)] color: Signal<
         Colour,
     >,
+    #[prop(default = Signal::derive(move || Colour::Black), into, optional)] stroke: Signal<Colour>,
     #[prop(optional)] on_click: Option<Callback<u32>>,
     #[prop(optional)] on_hover: Option<Callback<bool>>,
     #[prop(optional)] children: Option<ChildrenFn>,
@@ -567,12 +604,13 @@ pub fn Region(
             cb.run(0);
         }
     };
+    logging::log!("{}", stroke().to_string());
     view! {
         <g>
             <path
                 d=move || { layout.with(|l| l.draw_filled(start(), end(), style)) }
                 fill=move || color().to_string()
-                stroke="black"
+                stroke=move || stroke().to_string()
                 vector-effect="non-scaling-stroke"
                 on:mouseenter=handle_enter
                 on:mouseleave=handle_leave

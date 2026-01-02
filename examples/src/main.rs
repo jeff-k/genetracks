@@ -157,93 +157,20 @@ fn App() -> impl IntoView {
 
     let (view_range, set_view_range) = signal((0, length));
 
+    let (hover_label_stroke, set_hover_label_stroke) = signal(Colour::Black);
+    let handle_label_hover = Callback::new(move |hovering| {
+        set_hover_label_stroke(if hovering { Colour::Red } else { Colour::Black });
+    });
+    let (hover_region_stroke, set_hover_region_stroke) = signal(Colour::Black);
+    let handle_region_hover = Callback::new(move |hovering| {
+        set_hover_region_stroke(if hovering { Colour::Red } else { Colour::Black });
+    });
     view! {
         <div class="app-container">
             <div class="header">
                 <h1>"Genome Browser Demo: "<i>"pUC19"</i></h1>
             </div>
 
-            <div class="linear-view">
-                <Figure
-                    length=length
-                    width=width
-                    view=view_range
-                    tracks=8u32
-                    on_scroll=set_view_range
-                >
-                    <Track index=0u32>
-                        <Ticks n=15u32 range=view_range text=true />
-                    </Track>
-
-                    <Track index=1u32>
-                        <Ticks n=45u32 range=view_range />
-                    </Track>
-
-                    <Track index=4u32>
-                        <Region
-                            start=146u32
-                            end=507u32
-                            style=ElemStyle::Right
-                            color=Colour::LightBlue
-                        />
-
-                        <Region
-                            start=1629u32
-                            end=2489u32
-                            style=ElemStyle::ArrowLeft
-                            color=Colour::Salmon
-                        />
-
-                        <Region
-                            start=1158u32
-                            end=1625u32
-                            style=ElemStyle::ArrowRight
-                            color=Colour::YellowGreen
-                        />
-                    </Track>
-
-                    <Track index=5u32>
-                        <Region
-                            start=396u32
-                            end=454u32
-                            style=ElemStyle::ArrowLeft
-                            color=Colour::MediumAquamarine
-                        />
-                        <Region start=507u32 end=568u32 style=ElemStyle::Left color=Colour::Plum />
-
-                        <Region
-                            start=1543u32
-                            end=2431u32
-                            style=ElemStyle::ArrowRight
-                            color=Colour::Orange
-                        />
-
-                    </Track>
-                    <Track index=3u32>
-                        <Region start=1u32 end=length style=ElemStyle::Line color=Colour::Black />
-                    </Track>
-
-                    <Track index=2u32>
-
-                        <Region
-                            start=1u32
-                            end=length
-                            style=ElemStyle::DoubleLine
-                            color=Colour::Black
-                        />
-                    </Track>
-
-                    <Track index=3u32>{restriction_sites()} {restriction_site_labels()}</Track>
-
-                </Figure>
-                <RangeSlider
-                    width=width
-                    min=0
-                    max=length
-                    range=view_range
-                    set_range=set_view_range
-                />
-            </div>
             <div class="circular-view">
                 <div class="circular-figure">
                     <Circular length=length>
@@ -255,7 +182,7 @@ fn App() -> impl IntoView {
                         <Highlight range=view_range top=0u32 bottom=6u32 color=Colour::Yellow />
 
                         <Track index=4u32>
-                            <Ticks n=15u32 range=(0u32, length) text=true />
+                            <Ticks n=15u32 range=(45u32, length) text=true />
                         </Track>
 
                         <Track index=5u32>
@@ -280,6 +207,8 @@ fn App() -> impl IntoView {
                                 end=217u32
                                 style=ElemStyle::ArrowRight
                                 color=Colour::Yellow
+                                stroke=hover_region_stroke
+                                on_hover=handle_region_hover
                             ></Region>
 
                             <Region
@@ -301,6 +230,7 @@ fn App() -> impl IntoView {
                                 end=595u32
                                 style=ElemStyle::None
                                 color=Colour::MediumAquamarine
+                                stroke=Colour::Red
                             />
 
                             <Region
@@ -337,7 +267,9 @@ fn App() -> impl IntoView {
                             </Label>
                             <Label pos=2650u32>"ori (pMB1 origin)"</Label>
 
-                            <Label pos=550u32>"lac promoter"</Label>
+                            <Label pos=550u32 color=hover_label_stroke on_hover=handle_label_hover>
+                                "lac promoter"
+                            </Label>
                         </Track>
 
                         <Track index=1u32>{restriction_site_labels()}</Track>
@@ -349,3 +281,87 @@ fn App() -> impl IntoView {
         </div>
     }
 }
+
+/*
+           <div class="linear-view">
+               <Figure
+                   length=length
+                   width=width
+                   view=view_range
+                   tracks=8u32
+                   on_scroll=set_view_range
+               >
+                   <Track index=0u32>
+                       <Ticks n=15u32 range=view_range text=true />
+                   </Track>
+
+                   <Track index=1u32>
+                       <Ticks n=45u32 range=view_range />
+                   </Track>
+
+                   <Track index=4u32>
+                       <Region
+                           start=146u32
+                           end=507u32
+                           style=ElemStyle::Right
+                           color=Colour::LightBlue
+                       />
+
+                       <Region
+                           start=1629u32
+                           end=2489u32
+                           style=ElemStyle::ArrowLeft
+                           color=Colour::Salmon
+                       />
+
+                       <Region
+                           start=1158u32
+                           end=1625u32
+                           style=ElemStyle::ArrowRight
+                           color=Colour::YellowGreen
+                       />
+                   </Track>
+
+                   <Track index=5u32>
+                       <Region
+                           start=396u32
+                           end=454u32
+                           style=ElemStyle::ArrowLeft
+                           color=Colour::MediumAquamarine
+                       />
+                       <Region start=507u32 end=568u32 style=ElemStyle::Left color=Colour::Plum />
+
+                       <Region
+                           start=1543u32
+                           end=2431u32
+                           style=ElemStyle::ArrowRight
+                           color=Colour::Orange
+                       />
+
+                   </Track>
+                   <Track index=3u32>
+                       <Region start=1u32 end=length style=ElemStyle::Line color=Colour::Black />
+                   </Track>
+
+                   <Track index=2u32>
+
+                       <Region
+                           start=1u32
+                           end=length
+                           style=ElemStyle::DoubleLine
+                           color=Colour::Black
+                       />
+                   </Track>
+
+                   <Track index=3u32>{restriction_sites()} {restriction_site_labels()}</Track>
+
+               </Figure>
+               <RangeSlider
+                   width=width
+                   min=0
+                   max=length
+                   range=view_range
+                   set_range=set_view_range
+               />
+           </div>
+*/
