@@ -301,6 +301,7 @@ impl Layout for LinearCoords {
                     )
                 }
             }
+            ElemStyle::Bar | ElemStyle::BarLeft | ElemStyle::BarRight => todo!(),
         }
     }
 
@@ -478,6 +479,7 @@ impl Layout for LinearCoords {
                     )
                 }
             }
+            ElemStyle::Bar | ElemStyle::BarLeft | ElemStyle::BarRight => todo!(),
         }
     }
     fn draw_tick(&self, pos: u32) -> String {
@@ -727,6 +729,7 @@ impl Layout for CircularCoords {
                     )
                 }
             }
+            ElemStyle::Bar | ElemStyle::BarLeft | ElemStyle::BarRight => todo!(),
         }
     }
 
@@ -896,6 +899,7 @@ impl Layout for CircularCoords {
                     )
                 }
             }
+            ElemStyle::Bar | ElemStyle::BarLeft | ElemStyle::BarRight => todo!(),
         }
     }
     fn draw_tick(&self, pos: u32) -> String {

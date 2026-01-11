@@ -16,6 +16,9 @@ pub enum ElemStyle {
     ArrowRight,
     Line,
     DoubleLine,
+    Bar,
+    BarLeft,
+    BarRight,
     #[default]
     None,
 }

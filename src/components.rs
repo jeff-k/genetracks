@@ -139,6 +139,15 @@ pub fn Circular(
             -webkit-user-drag: none; \
             -webkit-tap-highlight-color: transparent;"
         >
+            <defs>
+                <filter id="glow-effect" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                    <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="sourceGraphic" />
+                    </feMerge>
+                </filter>
+            </defs>
             <Provider value=cx>{children.map(|children_fn| children_fn())}</Provider>
         </svg>
     }
@@ -277,6 +286,15 @@ pub fn Figure(
             on:wheel=on_wheel
             style="touch-action: none; user-select: none;"
         >
+            <defs>
+                <filter id="glow-effect" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+                    <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="sourceGraphic" />
+                    </feMerge>
+                </filter>
+            </defs>
             <Provider value=cx>{children.map(|children_fn| children_fn())}</Provider>
         </svg>
     }
@@ -550,6 +568,7 @@ pub fn Label(
 #[component]
 pub fn Tick(
     #[prop(into)] pos: Signal<u32>,
+    #[prop(optional)] end: Option<u32>,
     #[prop(optional)] label: Option<String>,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Tick must be child of Track");
@@ -580,6 +599,7 @@ pub fn Region(
         Colour,
     >,
     #[prop(default = Signal::derive(move || Colour::Black), into, optional)] stroke: Signal<Colour>,
+    #[prop(optional, into)] selected: Option<Signal<bool>>,
     #[prop(optional)] on_click: Option<Callback<u32>>,
     #[prop(optional)] on_hover: Option<Callback<bool>>,
     #[prop(optional)] children: Option<ChildrenFn>,
@@ -599,23 +619,61 @@ pub fn Region(
         }
     };
 
-    let on_click = move |_| {
+    let on_click = move |ev: MouseEvent| {
         if let Some(cb) = on_click {
-            cb.run(0);
+            let target = event_target::<web_sys::Element>(&ev);
+            let pos: u32 = ev.client_x() as u32;
+            cb.run(pos); // TODO: should be the genome region coord
         }
     };
-    logging::log!("{}", stroke().to_string());
+    let path_id = next_label_id();
+    let href_ref = format!("#{path_id}");
+
+    let is_highlighted = move || selected.map(|s| s.get()).unwrap_or(false);
+
     view! {
         <g>
-            <path
-                d=move || { layout.with(|l| l.draw_filled(start(), end(), style)) }
-                fill=move || color().to_string()
-                stroke=move || stroke().to_string()
-                vector-effect="non-scaling-stroke"
+            <defs>
+                <path
+                    id=path_id.clone()
+                    d=move || { layout.with(|l| l.draw_filled(start(), end(), style)) }
+                    fill=move || color().to_string()
+                    vector-effect="non-scaling-stroke"
+                />
+            // filter="url(#glow-effect)"
+            </defs>
+
+            {
+                let href_ref = href_ref.clone();
+                move || {
+                    if is_highlighted() {
+                        logging::log!("selected {href_ref}");
+                        Some(
+                            view! {
+                                <use
+                                    href=href_ref.clone()
+                                    stroke="yellow"
+                                    stroke-width="15"
+                                    stroke-opacity="0.5"
+                                    fill="none"
+                                    stroke-linejoin="round"
+                                />
+                            },
+                        )
+                    } else {
+                        None
+                    }
+                }
+            }
+
+            <use
+                href=href_ref
                 on:mouseenter=handle_enter
+                stroke=move || stroke().to_string()
                 on:mouseleave=handle_leave
                 on:click=on_click
             />
+
             <Provider value=layout>{children.map(|children_fn| children_fn())}</Provider>
         </g>
     }

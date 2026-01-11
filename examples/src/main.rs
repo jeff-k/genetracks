@@ -157,6 +157,16 @@ fn App() -> impl IntoView {
 
     let (view_range, set_view_range) = signal((0, length));
 
+    let (selected, set_selected) = signal(false);
+    let handle_region_click = Callback::new(move |i: u32| {
+        logging::log!("clicked on region {i}");
+        if selected() {
+            set_selected(false);
+        } else {
+            set_selected(true);
+        }
+    });
+
     let (hover_label_stroke, set_hover_label_stroke) = signal(Colour::Black);
     let handle_label_hover = Callback::new(move |hovering| {
         set_hover_label_stroke(if hovering { Colour::Red } else { Colour::Black });
@@ -206,9 +216,11 @@ fn App() -> impl IntoView {
                                 start=2315u32
                                 end=217u32
                                 style=ElemStyle::ArrowRight
-                                color=Colour::Yellow
+                                color=Colour::Plum
                                 stroke=hover_region_stroke
                                 on_hover=handle_region_hover
+                                on_click=handle_region_click
+                                selected=selected
                             ></Region>
 
                             <Region
@@ -237,7 +249,7 @@ fn App() -> impl IntoView {
                                 start=615u32
                                 end=938u32
                                 style=ElemStyle::ArrowRight
-                                color=Colour::Plum
+                                color=Colour::GoldenRod
                             />
 
                             <Region
