@@ -1,4 +1,5 @@
 use crate::ElemStyle;
+use crate::Layout;
 use crate::Point;
 use crate::components::FigCx;
 
@@ -145,10 +146,10 @@ impl Layout for LinearCoords {
                 )
             }
             ElemStyle::Line => {
-                format!("")
+                unimplemented!()
             }
             ElemStyle::DoubleLine => {
-                format!("")
+                unimplemented!()
             }
             ElemStyle::Left => {
                 if (end - start) * self.scale <= 10.0 {
@@ -431,21 +432,4 @@ impl Layout for LinearCoords {
 
         format!("M {start} L {end}")
     }
-}
-
-pub fn draw_highlight(start: f64, end: f64, top: f64, bottom: f64) -> String {
-    let start_top = Point { x: start, y: top };
-    let end_top = Point { x: end, y: top };
-    let start_bottom = Point {
-        x: start,
-        y: bottom,
-    };
-    let end_bottom = Point { x: end, y: bottom };
-    format!(
-        "M {start_top} \
-                            L {end_top} \
-                            L {end_bottom} \
-                            L {start_bottom} \
-                           Z"
-    )
 }

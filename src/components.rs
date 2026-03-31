@@ -568,7 +568,7 @@ pub fn Label(
 #[component]
 pub fn Tick(
     #[prop(into)] pos: Signal<u32>,
-    #[prop(optional)] end: Option<u32>,
+    //    #[prop(optional)] end: Option<u32>,
     #[prop(optional)] label: Option<String>,
 ) -> impl IntoView {
     let layout = use_context::<Memo<LayoutWrapper>>().expect("Tick must be child of Track");
@@ -621,15 +621,15 @@ pub fn Region(
 
     let on_click = move |ev: MouseEvent| {
         if let Some(cb) = on_click {
-            let target = event_target::<web_sys::Element>(&ev);
-            let pos: u32 = ev.client_x() as u32;
+            let _target = event_target::<web_sys::Element>(&ev);
+            let pos: u32 = ev.client_x().cast_unsigned();
             cb.run(pos); // TODO: should be the genome region coord
         }
     };
     let path_id = next_label_id();
     let href_ref = format!("#{path_id}");
 
-    let is_highlighted = move || selected.map(|s| s.get()).unwrap_or(false);
+    let is_highlighted = move || selected.is_some_and(|s| s.get());
 
     view! {
         <g>

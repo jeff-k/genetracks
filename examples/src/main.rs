@@ -1,13 +1,18 @@
+#![warn(clippy::pedantic)]
+#![allow(mixed_script_confusables)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::cast_sign_loss)]
+
 //use core::ops::Range;
 use leptos::ev;
 use leptos::logging;
 use leptos::prelude::*;
 
 use genetracks::components::{
-    Bar, Circular, Figure, FigureTitle, Highlight, Label, Region, Ribbon, Tick, Ticks, Track,
+    Bar, Circular, FigureTitle, Highlight, Label, Region, Ribbon, Tick, Ticks, Track,
 };
 use genetracks::elements::{Colour, ElemStyle};
-use genetracks::slider::RangeSlider;
+//use genetracks::slider::RangeSlider;
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -34,7 +39,7 @@ fn restriction_sites() -> impl IntoView {
     view! {
         <Tick pos=2550u32 />
         <Tick pos=2655u32 />
-        <Tick pos=265932 />
+        <Tick pos=265_932 />
         <Tick pos=273u32 />
         <Tick pos=390u32 />
         <Tick pos=632u32 />
@@ -133,8 +138,8 @@ fn _ribbons() -> impl IntoView {
         <Ribbon start=(2400u32, 3924u32) end=(12400u32, 12924u32) color=Colour::RoyalBlue />
 
         <Ribbon
-            start=(5474935u32, 5487569u32)
-            end=(7109290u32, 7121924u32)
+            start=(5_474_935u32, 5_487_569u32)
+            end=(7_109_290u32, 7_121_924u32)
             color=Colour::RoyalBlue
         />
     }
@@ -143,8 +148,8 @@ fn _ribbons() -> impl IntoView {
 #[component]
 fn App() -> impl IntoView {
     let length: u32 = 2686;
-    let (width, set_width) = signal::<u32>(screen_width() - 100);
-    let (height, set_height) = signal::<u32>(screen_height() - 200);
+    let (_width, set_width) = signal::<u32>(screen_width() - 100);
+    let (_height, set_height) = signal::<u32>(screen_height() - 200);
 
     let _width_handle = window_event_listener(ev::resize, move |_| {
         logging::log!("resized width to {}", screen_width());
@@ -155,7 +160,7 @@ fn App() -> impl IntoView {
         set_height(screen_height() - 300);
     });
 
-    let (view_range, set_view_range) = signal((0, length));
+    let (view_range, _set_view_range) = signal((0, length));
 
     let (selected, set_selected) = signal(false);
     let handle_region_click = Callback::new(move |i: u32| {

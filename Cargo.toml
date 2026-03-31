@@ -2,7 +2,7 @@ cargo-features = ["panic-immediate-abort"]
 
 [package]
 name = "genetracks"
-version = "0.8.1"
+version = "0.8.2"
 edition = "2024"
 exclude = ["examples"]
 

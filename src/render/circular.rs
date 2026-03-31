@@ -1,6 +1,7 @@
 use crate::ElemStyle;
 use crate::Point;
 use crate::components::FigCx;
+use crate::render::Layout;
 use core::f64::consts::{PI, TAU};
 
 const HALF_PI: f64 = PI / 2.0;
@@ -12,14 +13,6 @@ pub struct CircularCoords {
     pub height: f64,
     pub center: Point,
 }
-
-#[derive(PartialEq)]
-pub enum LayoutWrapper {
-    Linear(LinearCoords),
-    Circular(CircularCoords),
-}
-
-
 impl Layout for CircularCoords {
     fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32), _target: Option<u32>) -> String {
         let (from_start, from_end) = end;
@@ -256,17 +249,17 @@ impl Layout for CircularCoords {
     }
 
     fn draw_filled(&self, start: u32, end: u32, decoration: ElemStyle) -> String {
-        let length = f64::from(self.length);
+        let length = self.length;
         let height = self.height;
         let arrow_head = self.height * 0.5;
 
         let start = f64::from(start);
         let end = f64::from(end);
 
-        let start_angle = (f64::from(start) / length) * TAU - HALF_PI;
+        let start_angle = (start / length) * TAU - HALF_PI;
         //        let end_angle = (f64::from(end) / length) * TAU - HALF_PI;
 
-        let full_circle = f64::from(start) == 0.0 && f64::from(end) == length;
+        let full_circle = start == 0.0 && end == length;
         let end_mod = if end == length { 0.0 } else { end };
 
         let span_bp: f64 = if full_circle {
@@ -277,7 +270,7 @@ impl Layout for CircularCoords {
             length - start + end_mod
         };
 
-        let span_angle = (f64::from(span_bp) / length) * TAU;
+        let span_angle = (span_bp / length) * TAU;
         let end_angle = start_angle + span_angle;
 
         let inner_radius = self.radius - height;
@@ -311,7 +304,7 @@ impl Layout for CircularCoords {
 
         let large_arc_flag = if span_angle <= PI { "0" } else { "1" };
 
-        let is_tiny = span_angle <= 0.02;
+        let _is_tiny = span_angle <= 0.02;
 
         match decoration {
             ElemStyle::None => {
@@ -330,7 +323,7 @@ impl Layout for CircularCoords {
                 )
             }
             ElemStyle::DoubleLine => {
-                format!("")
+                unimplemented!()
             }
             ElemStyle::Left => {
                 if end_angle - start_angle <= 0.02 {
