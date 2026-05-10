@@ -1,10 +1,21 @@
 use crate::ElemStyle;
-use crate::Point;
 use crate::components::FigCx;
+use crate::path::PathBuilder;
 use crate::render::Layout;
+use crate::{Bp, Point};
 use core::f64::consts::{PI, TAU};
 
 const HALF_PI: f64 = PI / 2.0;
+
+struct AnchorCtx<'a> {
+    cc: &'a CircularCoords,
+
+    start_angle: f64,
+    end_angle: f64,
+    inner_radius: f64,
+    outer_radius: f64,
+    mid_radius: f64,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CircularCoords {
@@ -47,18 +58,30 @@ impl Layout for CircularCoords {
 
         let to_end_control = mk_point(control, to_end_angle);
 
-        let from_large_arc = if (from_end_angle - from_start_angle).rem_euclid(TAU) > PI {
-            "1"
-        } else {
-            "0"
-        };
-        let to_large_arc = if (to_end_angle - to_start_angle).rem_euclid(TAU) > PI {
-            "1"
-        } else {
-            "0"
-        };
+        let from_large_arc = (from_end_angle - from_start_angle).rem_euclid(TAU) > PI;
+        let to_large_arc = (to_end_angle - to_start_angle).rem_euclid(TAU) > PI;
 
-        format!(
+        /*
+        let from_large_arc_flag = if (from_end_angle - from_start_angle).rem_euclid(TAU) > PI {
+            "1"
+        } else {
+            "0"
+        };
+        let to_large_arc_flag = if (to_end_angle - to_start_angle).rem_euclid(TAU) > PI {
+            "1"
+        } else {
+            "0"
+        };
+        */
+
+        PathBuilder::new()
+            .mv(from_start_point)
+            .arc(radius, from_end_point, from_large_arc, true)
+            .curve(from_end_control, to_start_control, to_start_point)
+            .arc(radius, to_end_point, to_large_arc, true)
+            .curve(to_end_control, from_start_control, from_start_point)
+            .close()
+        /*        format!(
             "M {from_start_point} \
         A {radius} {radius} 0 {from_large_arc} 1 {from_end_point} \
         C {from_end_control} {to_start_control} {to_start_point} \
@@ -66,6 +89,7 @@ impl Layout for CircularCoords {
         C {to_end_control} {from_start_control} {from_start_point} \
         Z",
         )
+        */
     }
     fn update(&mut self, cx: &FigCx, index: f64) {
         let FigCx {
@@ -302,40 +326,44 @@ impl Layout for CircularCoords {
         let end_wide_base_top = mk_point(outer_radius + arrow_head, end_angle - 0.02);
         let end_wide_base_bottom = mk_point(inner_radius - arrow_head, end_angle - 0.02);
 
-        let large_arc_flag = if span_angle <= PI { "0" } else { "1" };
+        let large_arc = span_angle > PI;
 
-        let _is_tiny = span_angle <= 0.02;
+        let large_arc_flag = if large_arc { "1" } else { "0" };
+
+        let is_tiny = span_angle <= 0.02;
 
         match decoration {
-            ElemStyle::None => {
-                format!(
-                    "M {start_top} \
-                            A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
-                            L {end_bottom} \
-                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
-                            Z"
-                )
-            }
-
-            ElemStyle::Line => {
-                format!(
-                    "M {start_mid} A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {end_mid} Z"
-                )
-            }
+            ElemStyle::None => PathBuilder::new()
+                .mv(start_top)
+                .arc(outer_radius, end_top, large_arc, true)
+                .line(end_bottom)
+                .arc(inner_radius, start_bottom, large_arc, false)
+                .close(),
+            ElemStyle::Line => PathBuilder::new()
+                .mv(start_mid)
+                .arc(inner_radius, end_mid, large_arc, false)
+                .close(),
             ElemStyle::DoubleLine => {
                 unimplemented!()
             }
             ElemStyle::Left => {
-                if end_angle - start_angle <= 0.02 {
-                    format!(
-                        "M {start_mid} \
-                            L {start_base_top} \
-                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_base_bottom} \
-                            L {start_mid} \
-                            Z"
-                    )
+                if is_tiny {
+                    PathBuilder::new()
+                        .mv(start_mid)
+                        .line(start_base_top)
+                        .arc(inner_radius, start_base_bottom, large_arc, false)
+                        .line(start_mid)
+                        .close()
                 } else {
-                    format!(
+                    PathBuilder::new()
+                        .mv(start_mid)
+                        .line(start_base_top)
+                        .arc(outer_radius, end_top, large_arc, true)
+                        .line(end_bottom)
+                        .arc(inner_radius, start_base_bottom, large_arc, false)
+                        .line(start_mid)
+                        .close()
+                    /*                    format!(
                         "M {start_mid} \
                             L {start_base_top} \
                             A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
@@ -343,12 +371,20 @@ impl Layout for CircularCoords {
                             A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_base_bottom} \
                             L {start_mid} \
                             Z"
-                    )
+                    )*/
                 }
             }
 
             ElemStyle::Right => {
                 if end_angle - start_angle <= 0.02 {
+                    PathBuilder::new()
+                        .mv(end_mid)
+                        .line(end_base_top)
+                        .arc(outer_radius, end_base_bottom, large_arc, true)
+                        .line(end_mid)
+                        .close()
+
+                    /*
                     format!(
                         "M {end_mid} \
                                 L {end_base_top}
@@ -356,8 +392,17 @@ impl Layout for CircularCoords {
                             L {end_mid} \
                             Z"
                     )
+                    */
                 } else {
-                    format!(
+                    PathBuilder::new()
+                        .mv(start_top)
+                        .arc(outer_radius, end_base_top, large_arc, true)
+                        .line(end_mid)
+                        .line(end_base_bottom)
+                        .arc(inner_radius, start_bottom, large_arc, false)
+                        .line(start_top)
+                        .close()
+                    /*format!(
                         "M {start_top} \
                             A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_base_top} \
                             L {end_mid} \
@@ -365,19 +410,29 @@ impl Layout for CircularCoords {
                             A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
                             L {start_top} \
                             Z"
-                    )
+                    )*/
                 }
             }
             ElemStyle::ArrowLeft => {
                 if end_angle - start_angle <= 0.02 {
-                    format!(
-                        "M {start_mid} \
-                            L {start_wide_base_top} \
-                            A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_wide_base_bottom} \
-                            L {start_mid} \
-                            Z"
-                    )
+                    PathBuilder::new()
+                        .mv(start_mid)
+                        .line(start_wide_base_top)
+                        .arc(inner_radius, start_wide_base_bottom, large_arc, false)
+                        .line(start_mid)
+                        .close()
                 } else {
+                    PathBuilder::new()
+                        .mv(start_mid)
+                        .line(start_wide_base_top)
+                        .line(start_base_top)
+                        .arc(outer_radius, end_top, large_arc, true)
+                        .line(end_bottom)
+                        .arc(inner_radius, start_base_bottom, large_arc, false)
+                        .line(start_wide_base_bottom)
+                        .line(start_mid)
+                        .close()
+                    /*
                     format!(
                         "M {start_mid} \
                             L {start_wide_base_top} \
@@ -389,6 +444,7 @@ impl Layout for CircularCoords {
                             L {start_mid} \
                             Z"
                     )
+                    */
                 }
             }
             ElemStyle::ArrowRight => {
@@ -437,7 +493,8 @@ impl Layout for CircularCoords {
             y: center.y + outer_radius * mid_angle.sin(),
         };
 
-        format!("M {start} L {end}")
+        PathBuilder::new().mv(start).line(end).close()
+        //        format!("M {start} L {end}")
     }
 }
 
@@ -472,19 +529,24 @@ pub fn draw_sector(
         y: origin.y + inner_radius * end_angle.sin(),
     };
 
-    let large_arc_flag = if (end_angle - start_angle).rem_euclid(TAU) <= PI {
-        "0"
-    } else {
-        "1"
-    };
+    let large_arc = (end_angle - start_angle).rem_euclid(TAU) <= PI;
 
-    format!(
+    //    let large_arc_flag = if large_arc { "0" } else { "1" };
+
+    PathBuilder::new()
+        .mv(start_top)
+        .arc(outer_radius, end_top, large_arc, true)
+        .line(end_bottom)
+        .arc(inner_radius, start_bottom, large_arc, false)
+        .close()
+    /*    format!(
         "M {start_top} \
         A {outer_radius} {outer_radius} 0 {large_arc_flag} 1 {end_top} \
         L {end_bottom} \
         A {inner_radius} {inner_radius} 0 {large_arc_flag} 0 {start_bottom} \
         Z"
     )
+    */
 }
 
 pub fn svg_arc_path(cc: &CircularCoords, pos: u32, arc_span: f64) -> String {
