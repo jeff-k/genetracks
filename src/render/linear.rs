@@ -146,10 +146,18 @@ impl Layout for LinearCoords {
                 )
             }
             ElemStyle::Line => {
-                unimplemented!()
+                format!(
+                    "M {start_mid} \
+                        L {end_mid}"
+                )
             }
             ElemStyle::DoubleLine => {
-                unimplemented!()
+                format!(
+                    "M {start_top} \
+                        L {end_top} \
+                        M {start_bottom} \
+                        L {end_bottom}"
+                )
             }
             ElemStyle::Left => {
                 if (end - start) * self.scale <= 10.0 {
