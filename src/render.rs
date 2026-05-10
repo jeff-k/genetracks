@@ -22,6 +22,7 @@ pub trait Layout: Sync + Send + PartialEq {
     fn draw_tick(&self, pos: u32) -> String;
     fn update(&mut self, cx: &FigCx, index: f64);
     fn draw_ribbon(&self, start: (u32, u32), end: (u32, u32), target: Option<u32>) -> String;
+    fn draw_coverage(&self, data: &[(u32, u32, f32)], max_len: f32) -> String;
 }
 
 impl Layout for LayoutWrapper {
@@ -59,6 +60,13 @@ impl Layout for LayoutWrapper {
         match self {
             LayoutWrapper::Linear(l) => l.draw_ribbon(start, end, target),
             LayoutWrapper::Circular(l) => l.draw_ribbon(start, end, target),
+        }
+    }
+
+    fn draw_coverage(&self, data: &[(u32, u32, f32)], max_len: f32) -> String {
+        match self {
+            LayoutWrapper::Linear(l) => l.draw_coverage(data, max_len),
+            LayoutWrapper::Circular(_) => unimplemented!(),
         }
     }
 }

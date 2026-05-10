@@ -9,7 +9,7 @@ use leptos::logging;
 use leptos::prelude::*;
 
 use genetracks::components::{
-    Bar, Figure, FigureTitle, Highlight, Label, Region, Ribbon, Tick, Ticks, Track,
+    Bar, Coverage, Figure, FigureTitle, Highlight, Label, Region, Ribbon, Tick, Ticks, Track,
 };
 use genetracks::elements::{Colour, ElemStyle};
 //use genetracks::slider::RangeSlider;
@@ -87,6 +87,9 @@ pub fn CoverageDemo() -> impl IntoView {
     let handle_region_hover = Callback::new(move |hovering| {
         set_hover_region_stroke(if hovering { Colour::Red } else { Colour::Black });
     });
+
+    let coverage_signal =
+        Signal::derive(move || vec![(0, 80, 4.0), (80, 81, 8.0), (81, 82, 6.0), (82, 90, 2.0)]);
     view! {
         <div class="linear-figure">
             <Figure length=length tracks=12>
@@ -96,6 +99,9 @@ pub fn CoverageDemo() -> impl IntoView {
                     restricion_sites()
                 </Track>
 
+                <Track index=1u32>
+                <Coverage data=coverage_signal />
+                </Track>
                 <Track index=2u32>
                     <Ticks n=45u32 range=(0u32, length) />
                     <Bar start=1u32 end=length style=ElemStyle::Line color=Colour::Black />
@@ -111,6 +117,7 @@ pub fn CoverageDemo() -> impl IntoView {
                 </Track>
                 <Track index=6u32>
                     <Label pos=515u32>"CAP binding"</Label>
+                    <Bar start=1500u32 end=1800u32 style=ElemStyle::Left />
                     {restriction_sites()}
                 </Track>
                 <Track index=8u32>

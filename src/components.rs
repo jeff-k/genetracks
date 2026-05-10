@@ -414,6 +414,21 @@ pub fn Track(
 }
 
 #[component]
+pub fn Coverage(
+    #[prop(into)] data: Signal<Vec<(u32, u32, f32)>>,
+    #[prop(default=Signal::derive(move || Colour::SteelBlue), into, optional)] color: Signal<
+        Colour,
+    >,
+) -> impl IntoView {
+    let layout = use_context::<Memo<LayoutWrapper>>().expect("Coverage no work");
+
+    let path = Memo::new(move |_| {
+        let max_val = 12.0;
+        layout.with(|l| data.with(|d| l.draw_coverage(d, max_val)))
+    });
+}
+
+#[component]
 pub fn Bar(
     #[prop(into)] start: Signal<u32>,
     #[prop(into)] end: Signal<u32>,

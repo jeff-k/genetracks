@@ -440,4 +440,8 @@ impl Layout for LinearCoords {
 
         format!("M {start} L {end}")
     }
+
+    fn draw_coverage(&self, data: &[(u32, u32, f32)], max_len: f32) -> String {
+        unimplemented!()
+    }
 }

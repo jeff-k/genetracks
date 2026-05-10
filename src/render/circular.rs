@@ -496,6 +496,9 @@ impl Layout for CircularCoords {
         PathBuilder::new().mv(start).line(end).close()
         //        format!("M {start} L {end}")
     }
+    fn draw_coverage(&self, data: &[(u32, u32, f32)], max_val: f32) -> String {
+        unimplemented!()
+    }
 }
 
 pub fn draw_sector(
